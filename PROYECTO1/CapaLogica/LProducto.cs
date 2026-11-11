@@ -1,4 +1,7 @@
 ﻿using System.Data;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using PROYECTO1.CapaDatos;
 using PROYECTO1.CapaEntidades;
 
@@ -14,6 +17,43 @@ namespace PROYECTO1.CapaLogica
         public DataTable ObtenerProveedorPorId(int id) => _dProducto.ObtenerProveedorPorId(id);
         public EProducto? ObtenerPorId(int id) => _dProducto.ObtenerPorId(id);
 
+        public List<string> ObtenerTallesRegistrados(string nombre, int idProveedor) =>
+            _dProducto.ObtenerTallesRegistrados(nombre, idProveedor);
+
+        public bool RegistrarVariantes(IReadOnlyList<EProducto> variantes, out string mensajeError)
+        {
+            mensajeError = string.Empty;
+            if (variantes == null || variantes.Count == 0)
+            {
+                mensajeError = "Debe seleccionar al menos un talle.";
+                return false;
+            }
+
+            var primero = variantes[0];
+            if (variantes.Any(p =>
+                !string.Equals(p.Nombre.Trim(), primero.Nombre.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                p.IdProveedor != primero.IdProveedor || p.IdCategoria != primero.IdCategoria ||
+                p.PrecioCosto != primero.PrecioCosto || p.PrecioVenta != primero.PrecioVenta ||
+                p.Stock != 0 || p.IdProducto != 0))
+            {
+                mensajeError = "Los talles deben pertenecer al mismo producto y comenzar con stock cero.";
+                return false;
+            }
+
+            if (variantes.Select(p => p.Talle?.Trim() ?? string.Empty)
+                         .Distinct(StringComparer.OrdinalIgnoreCase).Count() != variantes.Count)
+            {
+                mensajeError = "La selección contiene talles repetidos.";
+                return false;
+            }
+
+            foreach (var producto in variantes)
+                if (!ValidarCampos(producto, out mensajeError, comprobarExistencia: false))
+                    return false;
+
+            return _dProducto.InsertarVariantes(variantes, out mensajeError);
+        }
+
         public bool Registrar(EProducto prod, out string mensajeError)
         {
             mensajeError = string.Empty;
@@ -24,14 +64,32 @@ namespace PROYECTO1.CapaLogica
             return _dProducto.Insertar(prod);
         }
 
-        public bool Modificar(EProducto prod, out string mensajeError)
+        public bool Modificar(EProducto prod, out string mensajeError) =>
+            ModificarVariantes(prod, aplicarAOtrosTalles: false, out mensajeError);
+
+        public List<string> ObtenerOtrosTalles(int idProducto) =>
+            _dProducto.ObtenerOtrosTalles(idProducto);
+
+        public bool ModificarVariantes(EProducto prod, bool aplicarAOtrosTalles, out string mensajeError)
         {
             mensajeError = string.Empty;
-
-            if (!ValidarCampos(prod, out mensajeError))
+            if (!ValidarCampos(prod, out mensajeError, comprobarExistencia: false))
                 return false;
+            return _dProducto.ModificarVariantes(prod, aplicarAOtrosTalles, out mensajeError);
+        }
 
-            return _dProducto.Modificar(prod);
+        public bool RegistrarTallesParaProducto(int idProducto, IReadOnlyList<string> talles,
+            out string mensajeError)
+        {
+            mensajeError = string.Empty;
+            if (idProducto <= 0 || talles == null || talles.Count == 0 ||
+                talles.Any(t => string.IsNullOrWhiteSpace(t)) ||
+                talles.Select(t => t.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != talles.Count)
+            {
+                mensajeError = "Seleccioná talles válidos y sin repetir.";
+                return false;
+            }
+            return _dProducto.InsertarTallesParaProducto(idProducto, talles, out mensajeError);
         }
 
         public bool CambiarEstado(int idProducto, bool nuevoEstado)
@@ -39,7 +97,7 @@ namespace PROYECTO1.CapaLogica
             return _dProducto.CambiarEstado(idProducto, nuevoEstado);
         }
 
-        private bool ValidarCampos(EProducto prod, out string mensajeError)
+        private bool ValidarCampos(EProducto prod, out string mensajeError, bool comprobarExistencia = true)
         {
             mensajeError = string.Empty;
 
@@ -61,34 +119,37 @@ namespace PROYECTO1.CapaLogica
                 return false;
             }
 
+            if (string.IsNullOrWhiteSpace(prod.Talle))
+            {
+                mensajeError = "Debe seleccionar un talle válido.";
+                return false;
+            }
+
             if (prod.Stock < 0)
             {
                 mensajeError = "El stock no puede ser un número negativo.";
                 return false;
             }
 
-            // Validación estricta: Costo > 0
             if (prod.PrecioCosto <= 0)
             {
                 mensajeError = "El precio de costo debe ser mayor a cero.";
                 return false;
             }
 
-            // Validación estricta: Venta > 0
             if (prod.PrecioVenta <= 0)
             {
                 mensajeError = "El precio de venta debe ser mayor a cero.";
                 return false;
             }
 
-            // Validación de negocio: Precio de Venta > Precio de Costo
             if (prod.PrecioVenta <= prod.PrecioCosto)
             {
                 mensajeError = "El precio de venta debe ser mayor al precio de costo.";
                 return false;
             }
 
-            if (_dProducto.ExisteProducto(prod.Nombre, prod.Talle, prod.IdProveedor, prod.IdProducto))
+            if (comprobarExistencia && _dProducto.ExisteProducto(prod.Nombre, prod.Talle, prod.IdProveedor, prod.IdProducto))
             {
                 mensajeError = "Ya existe un producto con ese nombre, talle y proveedor.";
                 return false;

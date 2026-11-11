@@ -39,6 +39,7 @@ namespace PROYECTO1.CapaPresentacion
             {
                 buttonNuevoProducto.Visible = false;
                 buttonModificar.Visible = false;
+                buttonAgregarTalle.Visible = false;
                 dataGridView1.ReadOnly = true;
             }
         }
@@ -287,6 +288,53 @@ namespace PROYECTO1.CapaPresentacion
                 }
             }
             overlay.Close();
+        }
+
+        private void ButtonAgregarTalle_Click(object? sender, EventArgs e)
+        {
+            if (dataGridView1.CurrentRow == null || dataGridView1.CurrentRow.Index < 0)
+            {
+                MessageBox.Show("Seleccioná un producto de la lista para agregarle talles.",
+                    "Seleccionar producto", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var valorId = dataGridView1.CurrentRow.Cells["id_Producto"].Value;
+            if (!int.TryParse(valorId?.ToString(), out int id))
+            {
+                MessageBox.Show("No se pudo determinar el producto seleccionado.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                var seleccionado = _lProducto.ObtenerPorId(id);
+                if (seleccionado == null)
+                {
+                    MessageBox.Show("El producto ya no existe. Actualizá la lista.", "Aviso");
+                    return;
+                }
+                if (!seleccionado.Activo)
+                {
+                    MessageBox.Show("El producto está inactivo. Reactivalo antes de agregarle talles.", "Aviso");
+                    return;
+                }
+
+                using Form overlay = ModalHelper.CrearOverlay(this);
+                overlay.Show();
+                overlay.BringToFront();
+                using var form = new FormRegistrarProducto(id, agregarTalle: true);
+                form.StartPosition = FormStartPosition.CenterScreen;
+                if (form.ShowDialog(this) == DialogResult.OK)
+                    CargarTablaDesdeBD();
+                overlay.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("No se pudo abrir el formulario: " + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)

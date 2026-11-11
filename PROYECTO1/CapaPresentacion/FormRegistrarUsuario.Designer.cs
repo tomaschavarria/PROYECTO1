@@ -173,7 +173,7 @@
             dateTimePickerNacimiento.MinDate = new DateTime(1753, 1, 1, 0, 0, 0, 0);
             dateTimePickerNacimiento.Name = "dateTimePickerNacimiento";
             dateTimePickerNacimiento.ShadowDecoration.CustomizableEdges = customizableEdges8;
-            dateTimePickerNacimiento.Size = new Size(134, 35);
+            dateTimePickerNacimiento.Size = new Size(130, 35);
             dateTimePickerNacimiento.TabIndex = 44;
             dateTimePickerNacimiento.Value = new DateTime(2025, 9, 7, 1, 33, 13, 349);
             // 

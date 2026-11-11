@@ -51,6 +51,8 @@
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges16 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges17 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges18 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges19 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges20 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             dataGridView1 = new DataGridView();
             id_Producto = new DataGridViewTextBoxColumn();
             Nombre = new DataGridViewTextBoxColumn();
@@ -63,6 +65,7 @@
             Estado = new DataGridViewTextBoxColumn();
             buttonNuevoProducto = new Guna.UI2.WinForms.Guna2Button();
             buttonModificar = new Guna.UI2.WinForms.Guna2Button();
+            buttonAgregarTalle = new Guna.UI2.WinForms.Guna2Button();
             fondoDeTabla = new Guna.UI2.WinForms.Guna2Button();
             guna2Panel3 = new Guna.UI2.WinForms.Guna2Panel();
             buttonInactivos = new Guna.UI2.WinForms.Guna2Button();
@@ -252,6 +255,23 @@
             buttonModificar.Text = "MODIFICAR";
             buttonModificar.Click += ButtonModificar_Click;
             // 
+            // buttonAgregarTalle
+            // 
+            buttonAgregarTalle.AutoRoundedCorners = true;
+            buttonAgregarTalle.BorderRadius = 18;
+            buttonAgregarTalle.Cursor = Cursors.Hand;
+            buttonAgregarTalle.CustomizableEdges = customizableEdges5;
+            buttonAgregarTalle.FillColor = Color.FromArgb(109, 124, 163);
+            buttonAgregarTalle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            buttonAgregarTalle.ForeColor = Color.White;
+            buttonAgregarTalle.Location = new Point(420, 73);
+            buttonAgregarTalle.Name = "buttonAgregarTalle";
+            buttonAgregarTalle.ShadowDecoration.CustomizableEdges = customizableEdges6;
+            buttonAgregarTalle.Size = new Size(182, 39);
+            buttonAgregarTalle.TabIndex = 67;
+            buttonAgregarTalle.Text = "+ AGREGAR TALLE";
+            buttonAgregarTalle.Click += ButtonAgregarTalle_Click;
+            // 
             // fondoDeTabla
             // 
             fondoDeTabla.AutoRoundedCorners = true;
@@ -260,9 +280,9 @@
             fondoDeTabla.CheckedState.FillColor = Color.FromArgb(109, 124, 163);
             fondoDeTabla.CheckedState.ForeColor = Color.FromArgb(109, 124, 163);
             fondoDeTabla.CustomBorderColor = Color.FromArgb(109, 124, 163);
-            customizableEdges5.BottomLeft = false;
-            customizableEdges5.BottomRight = false;
-            fondoDeTabla.CustomizableEdges = customizableEdges5;
+            customizableEdges7.BottomLeft = false;
+            customizableEdges7.BottomRight = false;
+            fondoDeTabla.CustomizableEdges = customizableEdges7;
             fondoDeTabla.DisabledState.BorderColor = Color.DarkGray;
             fondoDeTabla.DisabledState.CustomBorderColor = Color.DarkGray;
             fondoDeTabla.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
@@ -277,8 +297,8 @@
             fondoDeTabla.Location = new Point(33, 144);
             fondoDeTabla.Name = "fondoDeTabla";
             fondoDeTabla.PressedColor = Color.FromArgb(109, 124, 163);
-            fondoDeTabla.ShadowDecoration.CustomizableEdges = customizableEdges6;
-            fondoDeTabla.Size = new Size(1628, 33);
+            fondoDeTabla.ShadowDecoration.CustomizableEdges = customizableEdges8;
+            fondoDeTabla.Size = new Size(1617, 33);
             fondoDeTabla.TabIndex = 80;
             // 
             // guna2Panel3
@@ -286,20 +306,20 @@
             guna2Panel3.BorderColor = Color.FromArgb(43, 50, 68);
             guna2Panel3.BorderRadius = 25;
             guna2Panel3.CustomBorderColor = Color.FromArgb(43, 50, 68);
-            customizableEdges7.TopLeft = false;
-            customizableEdges7.TopRight = false;
-            guna2Panel3.CustomizableEdges = customizableEdges7;
+            customizableEdges9.TopLeft = false;
+            customizableEdges9.TopRight = false;
+            guna2Panel3.CustomizableEdges = customizableEdges9;
             guna2Panel3.FillColor = Color.FromArgb(43, 50, 68);
             guna2Panel3.Location = new Point(33, 160);
             guna2Panel3.Name = "guna2Panel3";
-            guna2Panel3.ShadowDecoration.CustomizableEdges = customizableEdges8;
-            guna2Panel3.Size = new Size(1628, 844);
+            guna2Panel3.ShadowDecoration.CustomizableEdges = customizableEdges10;
+            guna2Panel3.Size = new Size(1617, 844);
             guna2Panel3.TabIndex = 84;
             // 
             // buttonInactivos
             // 
             buttonInactivos.AutoRoundedCorners = true;
-            buttonInactivos.CustomizableEdges = customizableEdges9;
+            buttonInactivos.CustomizableEdges = customizableEdges11;
             buttonInactivos.DisabledState.BorderColor = Color.DarkGray;
             buttonInactivos.DisabledState.CustomBorderColor = Color.DarkGray;
             buttonInactivos.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
@@ -309,7 +329,7 @@
             buttonInactivos.ForeColor = Color.White;
             buttonInactivos.Location = new Point(1390, 73);
             buttonInactivos.Name = "buttonInactivos";
-            buttonInactivos.ShadowDecoration.CustomizableEdges = customizableEdges10;
+            buttonInactivos.ShadowDecoration.CustomizableEdges = customizableEdges12;
             buttonInactivos.Size = new Size(117, 39);
             buttonInactivos.TabIndex = 99;
             buttonInactivos.Text = "INACTIVOS";
@@ -317,7 +337,7 @@
             // buttonActivos
             // 
             buttonActivos.AutoRoundedCorners = true;
-            buttonActivos.CustomizableEdges = customizableEdges11;
+            buttonActivos.CustomizableEdges = customizableEdges13;
             buttonActivos.DisabledState.BorderColor = Color.DarkGray;
             buttonActivos.DisabledState.CustomBorderColor = Color.DarkGray;
             buttonActivos.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
@@ -327,7 +347,7 @@
             buttonActivos.ForeColor = Color.White;
             buttonActivos.Location = new Point(1254, 73);
             buttonActivos.Name = "buttonActivos";
-            buttonActivos.ShadowDecoration.CustomizableEdges = customizableEdges12;
+            buttonActivos.ShadowDecoration.CustomizableEdges = customizableEdges14;
             buttonActivos.Size = new Size(117, 39);
             buttonActivos.TabIndex = 98;
             buttonActivos.Text = "ACTIVOS";
@@ -335,7 +355,7 @@
             // textBoxBuscador
             // 
             textBoxBuscador.AutoRoundedCorners = true;
-            textBoxBuscador.CustomizableEdges = customizableEdges13;
+            textBoxBuscador.CustomizableEdges = customizableEdges15;
             textBoxBuscador.DefaultText = "";
             textBoxBuscador.DisabledState.BorderColor = Color.FromArgb(208, 208, 208);
             textBoxBuscador.DisabledState.FillColor = Color.FromArgb(226, 226, 226);
@@ -351,7 +371,7 @@
             textBoxBuscador.PlaceholderForeColor = Color.Gray;
             textBoxBuscador.PlaceholderText = "Buscar";
             textBoxBuscador.SelectedText = "";
-            textBoxBuscador.ShadowDecoration.CustomizableEdges = customizableEdges14;
+            textBoxBuscador.ShadowDecoration.CustomizableEdges = customizableEdges16;
             textBoxBuscador.Size = new Size(249, 36);
             textBoxBuscador.TabIndex = 96;
             // 
@@ -359,7 +379,7 @@
             // 
             comboBoxColumna.AutoRoundedCorners = true;
             comboBoxColumna.BackColor = Color.Transparent;
-            comboBoxColumna.CustomizableEdges = customizableEdges15;
+            comboBoxColumna.CustomizableEdges = customizableEdges17;
             comboBoxColumna.DrawMode = DrawMode.OwnerDrawFixed;
             comboBoxColumna.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxColumna.FocusedColor = Color.FromArgb(94, 148, 255);
@@ -369,14 +389,14 @@
             comboBoxColumna.ItemHeight = 30;
             comboBoxColumna.Location = new Point(800, 73);
             comboBoxColumna.Name = "comboBoxColumna";
-            comboBoxColumna.ShadowDecoration.CustomizableEdges = customizableEdges16;
+            comboBoxColumna.ShadowDecoration.CustomizableEdges = customizableEdges18;
             comboBoxColumna.Size = new Size(166, 36);
             comboBoxColumna.TabIndex = 95;
             // 
             // btnExportar
             // 
             btnExportar.AutoRoundedCorners = true;
-            btnExportar.CustomizableEdges = customizableEdges17;
+            btnExportar.CustomizableEdges = customizableEdges19;
             btnExportar.DisabledState.BorderColor = Color.DarkGray;
             btnExportar.DisabledState.CustomBorderColor = Color.DarkGray;
             btnExportar.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
@@ -388,7 +408,7 @@
             btnExportar.ImageAlign = HorizontalAlignment.Left;
             btnExportar.Location = new Point(1529, 73);
             btnExportar.Name = "btnExportar";
-            btnExportar.ShadowDecoration.CustomizableEdges = customizableEdges18;
+            btnExportar.ShadowDecoration.CustomizableEdges = customizableEdges20;
             btnExportar.Size = new Size(132, 39);
             btnExportar.TabIndex = 97;
             btnExportar.Text = "EXPORTAR";
@@ -407,6 +427,7 @@
             Controls.Add(comboBoxColumna);
             Controls.Add(btnExportar);
             Controls.Add(buttonModificar);
+            Controls.Add(buttonAgregarTalle);
             Controls.Add(buttonNuevoProducto);
             Controls.Add(fondoDeTabla);
             Controls.Add(guna2Panel3);
@@ -422,6 +443,7 @@
         private DataGridView dataGridView1;
         private Guna.UI2.WinForms.Guna2Button buttonNuevoProducto;
         private Guna.UI2.WinForms.Guna2Button buttonModificar;
+        private Guna.UI2.WinForms.Guna2Button buttonAgregarTalle;
         private Guna.UI2.WinForms.Guna2Button fondoDeTabla;
         private Guna.UI2.WinForms.Guna2Panel guna2Panel3;
         private DataGridViewTextBoxColumn id_Producto;

@@ -18,7 +18,7 @@ namespace PROYECTO1.CapaPresentacion
         private readonly LReporte _lReporte = new();
         private readonly CultureInfo cultura = CultureInfo.GetCultureInfo("es-AR");
         private readonly ToolTip _toolTip = new();
-        private readonly Font _fontEmoji = new("Segoe UI Emoji", 11F, FontStyle.Regular);
+        private readonly Font _fontEmoji = new("Segoe UI Emoji", 12F, FontStyle.Regular);
 
         // Binding para Ventas
         private readonly BindingSource _bsVentas = new();
@@ -35,23 +35,35 @@ namespace PROYECTO1.CapaPresentacion
         private Label lblClientesInactivos = null!;
         private Label lblProductosInactivos = null!;
 
+        private bool panelFiltrosAbierto = false;
+
         public ReporteAdministrador()
         {
             InitializeComponent();
             this.Load += ReporteAdministrador_Load;
 
-            // Filtros y exportar de Ventas
+            // Filtros locales de búsqueda rápida
             textBoxBuscador.TextChanged += (_, __) => AplicarFiltroVentas();
             comboBoxColumna.SelectedIndexChanged += (_, __) => AplicarFiltroVentas();
             btnExportarVentas.Click += BtnExportarVentas_Click;
             btnExportarBajoStock.Click += BtnExportarBajoStock_Click;
 
-            // Filtros y exportar de Compras
             textBoxCompras.TextChanged += (_, __) => AplicarFiltroCompras();
             comboBoxCompras.SelectedIndexChanged += (_, __) => AplicarFiltroCompras();
             btnExportarCompras.Click += BtnExportarCompras_Click;
 
+            // Eventos del panel de filtros avanzados
+            btnToggleFiltros.Click += BtnToggleFiltros_Click;
+            btnCerrarPanel.Click += BtnCerrarPanel_Click;
+            btnAplicarFiltros.Click += BtnAplicarFiltros_Click;
+            btnLimpiarFiltros.Click += BtnLimpiarFiltros_Click;
+
+            // Formateo del DNI para Consumidor Final
+            dataGridViewVentas.CellFormatting += DataGridViewVentas_CellFormatting;
+
             panelNProdxCategoria.Paint += PanelNProdxCategoria_Paint;
+
+            ConfigurarCombosFiltros();
         }
 
         private void ReporteAdministrador_Load(object? sender, EventArgs e)
@@ -63,13 +75,74 @@ namespace PROYECTO1.CapaPresentacion
             ConfigurarBuscadorVentas();
             ConfigurarBuscadorCompras();
 
+            // Ocultar y configurar el panel lateral de filtros
+            panelFiltros.Dock = DockStyle.Right;
+            panelFiltros.Visible = false;
+            btnToggleFiltros.BorderRadius = btnToggleFiltros.Width / 2; // Aseguramos círculo perfecto
+
             CargarKpis();
             CargarGraficoDonut();
             CargarBarrasProveedores();
             CargarTablaBajoStock();
+
+            // Cargas iniciales sin filtro de fecha
             CargarTablaVentas();
             CargarTablaCompras();
         }
+
+        #region PANEL DE FILTROS AVANZADOS
+
+        private void ConfigurarCombosFiltros()
+        {
+            fechaDesdeVentas.Checked = false;
+            fechaHastaVentas.Checked = false;
+            fechaDesdeCompras.Checked = false;
+            fechaHastaCompras.Checked = false;
+
+            filtroTipoCliente.SelectedIndex = 0;
+
+        }
+
+        private void BtnToggleFiltros_Click(object? sender, EventArgs e)
+        {
+            panelFiltrosAbierto = !panelFiltrosAbierto;
+            panelFiltros.Visible = panelFiltrosAbierto;
+
+            if (panelFiltrosAbierto)
+            {
+                panelFiltros.BringToFront();
+                btnToggleFiltros.FillColor = Color.FromArgb(43, 50, 68);
+            }
+            else
+            {
+                btnToggleFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            }
+        }
+
+        private void BtnCerrarPanel_Click(object? sender, EventArgs e)
+        {
+            if (panelFiltrosAbierto)
+            {
+                BtnToggleFiltros_Click(null, null);
+            }
+        }
+
+        private void BtnLimpiarFiltros_Click(object? sender, EventArgs e)
+        {
+            ConfigurarCombosFiltros();
+            AplicarFiltroVentas();
+            AplicarFiltroCompras();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        private void BtnAplicarFiltros_Click(object? sender, EventArgs e)
+        {
+            AplicarFiltroVentas();
+            AplicarFiltroCompras();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        #endregion
 
         #region 1. Tarjetas KPI
 
@@ -394,6 +467,7 @@ namespace PROYECTO1.CapaPresentacion
 
             CID_Producto.DataPropertyName = "id_producto";
             CNombre.DataPropertyName = "Nombre";
+            CTalleBajoStock.DataPropertyName = "Talle";
             CStock.DataPropertyName = "Stock";
 
             CStock.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -402,8 +476,9 @@ namespace PROYECTO1.CapaPresentacion
             dataGridViewBajoStock.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             CID_Producto.FillWeight = 20;
-            CNombre.FillWeight = 55;
-            CStock.FillWeight = 25;
+            CNombre.FillWeight = 45;
+            CTalleBajoStock.FillWeight = 15;
+            CStock.FillWeight = 20;
 
             dataGridViewBajoStock.CellFormatting += (s, e) =>
             {
@@ -490,7 +565,7 @@ namespace PROYECTO1.CapaPresentacion
             CFactura.FillWeight = 5;
 
             CFactura.FlatStyle = FlatStyle.Flat;
-            CFactura.Text = "🧾";
+            CFactura.Text = "";
             CFactura.UseColumnTextForButtonValue = true;
 
             dataGridViewVentas.CellPainting += DataGridViewVentas_CellPainting;
@@ -530,59 +605,76 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
+        private void DataGridViewVentas_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex >= 0 && dataGridViewVentas.Columns[e.ColumnIndex].Name == "CDNI")
+            {
+                var cliente = dataGridViewVentas.Rows[e.RowIndex].Cells["CCliente"].Value?.ToString();
+                if (cliente == "Consumidor Final")
+                {
+                    e.Value = "00000000";
+                    e.FormattingApplied = true;
+                }
+            }
+        }
+
         private void AplicarFiltroVentas()
         {
             if (_dtVentas == null) return;
+            var condiciones = new List<string>();
+
+            if (fechaDesdeVentas.Checked)
+                condiciones.Add($"[Fecha] >= '{fechaDesdeVentas.Value:yyyy-MM-dd} 00:00'");
+            if (fechaHastaVentas.Checked)
+                condiciones.Add($"[Fecha] < '{fechaHastaVentas.Value.Date.AddDays(1):yyyy-MM-dd} 00:00'");
+
+            if (filtroTipoCliente.SelectedIndex == 1)
+                condiciones.Add("[EsConsumidorFinal] = 1");
+            else if (filtroTipoCliente.SelectedIndex == 2)
+                condiciones.Add("[EsConsumidorFinal] = 0");
 
             string texto = EscaparLike((textBoxBuscador.Text ?? string.Empty).Trim());
-            if (string.IsNullOrEmpty(texto))
+            if (!string.IsNullOrEmpty(texto))
             {
-                _bsVentas.Filter = string.Empty;
-                return;
-            }
-
-            string columna = comboBoxColumna.SelectedValue?.ToString() ?? "Vendedor";
-
-            if (columna == "Fecha")
-            {
-                if (DateTime.TryParse(texto, cultura, DateTimeStyles.None, out DateTime fechaFiltro) ||
-                    DateTime.TryParse(texto, out fechaFiltro))
-                {
-                    DateTime desde = fechaFiltro.Date;
-                    DateTime hasta = desde.AddDays(1);
-                    _bsVentas.Filter = $"([Fecha] >= #{desde:yyyy-MM-dd 00:00:00}# AND [Fecha] < #{hasta:yyyy-MM-dd 00:00:00}#) OR CONVERT([Fecha], 'System.String') LIKE '%{texto}%'";
-                }
+                string columna = comboBoxColumna.SelectedValue?.ToString() ?? "Vendedor";
+                if (columna == "NroVenta" || columna == "DNI" || columna == "Fecha")
+                    condiciones.Add($"CONVERT([{columna}], 'System.String') LIKE '%{texto}%'");
                 else
-                {
-                    _bsVentas.Filter = $"CONVERT([Fecha], 'System.String') LIKE '%{texto}%'";
-                }
+                    condiciones.Add($"[{columna}] LIKE '%{texto}%'");
             }
-            else if (columna == "NroVenta" || columna == "DNI")
-            {
-                _bsVentas.Filter = $"CONVERT([{columna}], 'System.String') LIKE '%{texto}%'";
-            }
-            else
-            {
-                _bsVentas.Filter = $"[{columna}] LIKE '%{texto}%'";
-            }
+            _bsVentas.Filter = string.Join(" AND ", condiciones);
         }
 
         private void DataGridViewVentas_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
         {
             if (e.RowIndex >= 0 && e.ColumnIndex == CFactura.Index)
             {
-                using var brushFila = new SolidBrush(Color.FromArgb(43, 50, 68));
-                e.Graphics.FillRectangle(brushFila, e.CellBounds);
+                e.Paint(e.CellBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentBackground);
+
+                using var brushFondoCelda = new SolidBrush(e.State.HasFlag(DataGridViewElementStates.Selected) ? dataGridViewVentas.DefaultCellStyle.SelectionBackColor : dataGridViewVentas.DefaultCellStyle.BackColor);
+                e.Graphics.FillRectangle(brushFondoCelda, e.CellBounds);
 
                 var rectBoton = new Rectangle(
-                    e.CellBounds.X + 6,
-                    e.CellBounds.Y + 3,
-                    e.CellBounds.Width - 12,
-                    e.CellBounds.Height - 6
+                    e.CellBounds.X + 15,
+                    e.CellBounds.Y + 4,
+                    e.CellBounds.Width - 30,
+                    e.CellBounds.Height - 8
                 );
 
-                using var brushBoton = new SolidBrush(Color.FromArgb(43, 50, 68));
-                e.Graphics.FillRectangle(brushBoton, rectBoton);
+                using var path = new GraphicsPath();
+                int radius = 10;
+                path.AddArc(rectBoton.X, rectBoton.Y, radius, radius, 180, 90);
+                path.AddArc(rectBoton.Right - radius, rectBoton.Y, radius, radius, 270, 90);
+                path.AddArc(rectBoton.Right - radius, rectBoton.Bottom - radius, radius, radius, 0, 90);
+                path.AddArc(rectBoton.X, rectBoton.Bottom - radius, radius, radius, 90, 90);
+                path.CloseFigure();
+
+                bool isHovered = rectBoton.Contains(dataGridViewVentas.PointToClient(Cursor.Position));
+                Color colorBoton = isHovered ? Color.FromArgb(136, 152, 194) : Color.FromArgb(109, 124, 163);
+
+                using var brushBoton = new SolidBrush(colorBoton);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.FillPath(brushBoton, path);
 
                 TextRenderer.DrawText(
                     e.Graphics,
@@ -664,7 +756,7 @@ namespace PROYECTO1.CapaPresentacion
             CFacturaCompra.FillWeight = 5;
 
             CFacturaCompra.FlatStyle = FlatStyle.Flat;
-            CFacturaCompra.Text = "🧾";
+            CFacturaCompra.Text = "";
             CFacturaCompra.UseColumnTextForButtonValue = true;
 
             dataGridViewCompras.CellPainting += DataGridViewCompras_CellPainting;
@@ -707,56 +799,56 @@ namespace PROYECTO1.CapaPresentacion
         private void AplicarFiltroCompras()
         {
             if (_dtCompras == null) return;
+            var condiciones = new List<string>();
+
+            if (fechaDesdeCompras.Checked)
+                condiciones.Add($"[Fecha] >= '{fechaDesdeCompras.Value:yyyy-MM-dd} 00:00'");
+            if (fechaHastaCompras.Checked)
+                condiciones.Add($"[Fecha] < '{fechaHastaCompras.Value.Date.AddDays(1):yyyy-MM-dd} 00:00'");
+
 
             string texto = EscaparLike((textBoxCompras.Text ?? string.Empty).Trim());
-            if (string.IsNullOrEmpty(texto))
+            if (!string.IsNullOrEmpty(texto))
             {
-                _bsCompras.Filter = string.Empty;
-                return;
-            }
-
-            string columna = comboBoxCompras.SelectedValue?.ToString() ?? "Proveedor";
-
-            if (columna == "Fecha")
-            {
-                if (DateTime.TryParse(texto, cultura, DateTimeStyles.None, out DateTime fechaFiltro) ||
-                    DateTime.TryParse(texto, out fechaFiltro))
-                {
-                    DateTime desde = fechaFiltro.Date;
-                    DateTime hasta = desde.AddDays(1);
-                    _bsCompras.Filter = $"([Fecha] >= #{desde:yyyy-MM-dd 00:00:00}# AND [Fecha] < #{hasta:yyyy-MM-dd 00:00:00}#) OR CONVERT([Fecha], 'System.String') LIKE '%{texto}%'";
-                }
+                string columna = comboBoxCompras.SelectedValue?.ToString() ?? "Proveedor";
+                if (columna == "NroCompra" || columna == "CUIT" || columna == "Fecha")
+                    condiciones.Add($"CONVERT([{columna}], 'System.String') LIKE '%{texto}%'");
                 else
-                {
-                    _bsCompras.Filter = $"CONVERT([Fecha], 'System.String') LIKE '%{texto}%'";
-                }
+                    condiciones.Add($"[{columna}] LIKE '%{texto}%'");
             }
-            else if (columna == "NroCompra" || columna == "CUIT")
-            {
-                _bsCompras.Filter = $"CONVERT([{columna}], 'System.String') LIKE '%{texto}%'";
-            }
-            else
-            {
-                _bsCompras.Filter = $"[{columna}] LIKE '%{texto}%'";
-            }
+            _bsCompras.Filter = string.Join(" AND ", condiciones);
         }
 
         private void DataGridViewCompras_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
         {
             if (e.RowIndex >= 0 && e.ColumnIndex == CFacturaCompra.Index)
             {
-                using var brushFila = new SolidBrush(Color.FromArgb(43, 50, 68));
-                e.Graphics.FillRectangle(brushFila, e.CellBounds);
+                e.Paint(e.CellBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentBackground);
+
+                using var brushFondoCelda = new SolidBrush(e.State.HasFlag(DataGridViewElementStates.Selected) ? dataGridViewCompras.DefaultCellStyle.SelectionBackColor : dataGridViewCompras.DefaultCellStyle.BackColor);
+                e.Graphics.FillRectangle(brushFondoCelda, e.CellBounds);
 
                 var rectBoton = new Rectangle(
-                    e.CellBounds.X + 6,
-                    e.CellBounds.Y + 3,
-                    e.CellBounds.Width - 12,
-                    e.CellBounds.Height - 6
+                    e.CellBounds.X + 15,
+                    e.CellBounds.Y + 4,
+                    e.CellBounds.Width - 30,
+                    e.CellBounds.Height - 8
                 );
 
-                using var brushBoton = new SolidBrush(Color.FromArgb(43, 50, 68));
-                e.Graphics.FillRectangle(brushBoton, rectBoton);
+                using var path = new GraphicsPath();
+                int radius = 10;
+                path.AddArc(rectBoton.X, rectBoton.Y, radius, radius, 180, 90);
+                path.AddArc(rectBoton.Right - radius, rectBoton.Y, radius, radius, 270, 90);
+                path.AddArc(rectBoton.Right - radius, rectBoton.Bottom - radius, radius, radius, 0, 90);
+                path.AddArc(rectBoton.X, rectBoton.Bottom - radius, radius, radius, 90, 90);
+                path.CloseFigure();
+
+                bool isHovered = rectBoton.Contains(dataGridViewCompras.PointToClient(Cursor.Position));
+                Color colorBoton = isHovered ? Color.FromArgb(136, 152, 194) : Color.FromArgb(109, 124, 163);
+
+                using var brushBoton = new SolidBrush(colorBoton);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.FillPath(brushBoton, path);
 
                 TextRenderer.DrawText(
                     e.Graphics,
@@ -808,18 +900,9 @@ namespace PROYECTO1.CapaPresentacion
             {
                 switch (c)
                 {
-                    case '[':
-                    case ']':
-                    case '%':
-                    case '*':
-                        sb.Append('[').Append(c).Append(']');
-                        break;
-                    case '\'':
-                        sb.Append("''");
-                        break;
-                    default:
-                        sb.Append(c);
-                        break;
+                    case '[': case ']': case '%': case '*': sb.Append('[').Append(c).Append(']'); break;
+                    case '\'': sb.Append("''"); break;
+                    default: sb.Append(c); break;
                 }
             }
             return sb.ToString();
@@ -863,7 +946,18 @@ namespace PROYECTO1.CapaPresentacion
                     {
                         if (omitirColumnaBoton && cell.OwningColumn is DataGridViewButtonColumn) continue;
 
-                        string valor = cell.FormattedValue?.ToString()?.Replace("\"", "\"\"") ?? "";
+                        string valor;
+
+                        // Forzar el DNI formateado si es ventas y Consumidor Final
+                        if (dgv == dataGridViewVentas && cell.OwningColumn.Name == "CDNI" && row.Cells["CCliente"].Value?.ToString() == "Consumidor Final")
+                        {
+                            valor = "00000000";
+                        }
+                        else
+                        {
+                            valor = cell.FormattedValue?.ToString()?.Replace("\"", "\"\"") ?? "";
+                        }
+
                         if (separador == ",")
                             celdas.Add($"\"{valor}\"");
                         else

@@ -2,15 +2,8 @@
 {
     partial class ReporteGerenteVentas
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -22,10 +15,6 @@
 
         #region Windows Form Designer generated code
 
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges1 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
@@ -79,8 +68,14 @@
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges42 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges45 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges46 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges53 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges54 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges47 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges48 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges49 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges50 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges51 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges52 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             lblGananciasMes = new Label();
             btnExportar = new Guna.UI2.WinForms.Guna2Button();
             pnlGananciasMes = new Guna.UI2.WinForms.Guna2Panel();
@@ -121,9 +116,20 @@
             tituloIngresos = new Guna.UI2.WinForms.Guna2Button();
             guna2Panel3 = new Guna.UI2.WinForms.Guna2Panel();
             fondoDeTabla = new Guna.UI2.WinForms.Guna2Button();
-            pnlProductosVendidosXMes = new Guna.UI2.WinForms.Guna2Panel();
-            lblProductosVendidosXMes = new Label();
-            tituloProductosVendidosXMes = new Guna.UI2.WinForms.Guna2Button();
+            btnToggleFiltros = new Guna.UI2.WinForms.Guna2Button();
+            panelFiltros = new Guna.UI2.WinForms.Guna2Panel();
+            btnCerrarPanel = new Guna.UI2.WinForms.Guna2Button();
+            lblFiltrosTitulo = new Label();
+            etiquetaDesdeVentas = new Label();
+            fechaDesdeVentas = new DateTimePicker();
+            etiquetaHastaVentas = new Label();
+            fechaHastaVentas = new DateTimePicker();
+            lblFiltroTipo = new Label();
+            filtroTipoCliente = new ComboBox();
+            lblFiltroMetodo = new Label();
+            filtroMetodoPago = new ComboBox();
+            btnAplicarFiltros = new Guna.UI2.WinForms.Guna2Button();
+            btnLimpiarFiltros = new Guna.UI2.WinForms.Guna2Button();
             pnlGananciasMes.SuspendLayout();
             pnlOrdenesMes.SuspendLayout();
             pnlVenMes.SuspendLayout();
@@ -135,7 +141,7 @@
             panelGanancias.SuspendLayout();
             panelIngresos.SuspendLayout();
             guna2Panel3.SuspendLayout();
-            pnlProductosVendidosXMes.SuspendLayout();
+            panelFiltros.SuspendLayout();
             SuspendLayout();
             // 
             // lblGananciasMes
@@ -180,7 +186,7 @@
             pnlGananciasMes.CustomBorderColor = Color.FromArgb(43, 50, 68);
             pnlGananciasMes.CustomizableEdges = customizableEdges3;
             pnlGananciasMes.FillColor = Color.FromArgb(43, 50, 68);
-            pnlGananciasMes.Location = new Point(784, 862);
+            pnlGananciasMes.Location = new Point(973, 860);
             pnlGananciasMes.Name = "pnlGananciasMes";
             pnlGananciasMes.ShadowDecoration.CustomizableEdges = customizableEdges4;
             pnlGananciasMes.Size = new Size(317, 78);
@@ -208,14 +214,14 @@
             tituloGananciasMes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloGananciasMes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloGananciasMes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloGananciasMes.Location = new Point(856, 829);
+            tituloGananciasMes.Location = new Point(1045, 827);
             tituloGananciasMes.Name = "tituloGananciasMes";
             tituloGananciasMes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloGananciasMes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloGananciasMes.ShadowDecoration.CustomizableEdges = customizableEdges6;
             tituloGananciasMes.Size = new Size(189, 39);
             tituloGananciasMes.TabIndex = 134;
-            tituloGananciasMes.Text = "CLIENTES DEL MES";
+            tituloGananciasMes.Text = "GANANCIAS DEL MES";
             tituloGananciasMes.UseTransparentBackground = true;
             // 
             // pnlOrdenesMes
@@ -267,14 +273,14 @@
             tituloOrdenesMes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloOrdenesMes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloOrdenesMes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloOrdenesMes.Location = new Point(1233, 652);
+            tituloOrdenesMes.Location = new Point(1256, 652);
             tituloOrdenesMes.Name = "tituloOrdenesMes";
             tituloOrdenesMes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloOrdenesMes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloOrdenesMes.ShadowDecoration.CustomizableEdges = customizableEdges10;
-            tituloOrdenesMes.Size = new Size(209, 39);
+            tituloOrdenesMes.Size = new Size(171, 39);
             tituloOrdenesMes.TabIndex = 132;
-            tituloOrdenesMes.Text = "N° DE ORDENES DEL MES";
+            tituloOrdenesMes.Text = "ÓRDENES DEL MES";
             tituloOrdenesMes.UseTransparentBackground = true;
             // 
             // pnlVenMes
@@ -326,14 +332,14 @@
             tituloVenMes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloVenMes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloVenMes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloVenMes.Location = new Point(873, 652);
+            tituloVenMes.Location = new Point(859, 652);
             tituloVenMes.Name = "tituloVenMes";
             tituloVenMes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloVenMes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloVenMes.ShadowDecoration.CustomizableEdges = customizableEdges14;
-            tituloVenMes.Size = new Size(156, 39);
+            tituloVenMes.Size = new Size(176, 39);
             tituloVenMes.TabIndex = 130;
-            tituloVenMes.Text = "VENTAS DEL MES";
+            tituloVenMes.Text = "INGRESOS DEL MES";
             tituloVenMes.UseTransparentBackground = true;
             // 
             // panelGraficoLineasGuna
@@ -408,7 +414,7 @@
             // panelContenedorBarras
             // 
             panelContenedorBarras.BackColor = Color.FromArgb(43, 50, 68);
-            panelContenedorBarras.Location = new Point(3, 22);
+            panelContenedorBarras.Location = new Point(50, 22);
             panelContenedorBarras.Name = "panelContenedorBarras";
             panelContenedorBarras.Size = new Size(494, 265);
             panelContenedorBarras.TabIndex = 0;
@@ -553,7 +559,7 @@
             tituloTablaTOP10Prod.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloTablaTOP10Prod.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloTablaTOP10Prod.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloTablaTOP10Prod.Location = new Point(202, 640);
+            tituloTablaTOP10Prod.Location = new Point(196, 644);
             tituloTablaTOP10Prod.Name = "tituloTablaTOP10Prod";
             tituloTablaTOP10Prod.PressedColor = Color.FromArgb(43, 50, 68);
             tituloTablaTOP10Prod.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
@@ -571,6 +577,7 @@
             panelTicketPromedio.Controls.Add(imagenTicketPromedio);
             panelTicketPromedio.Controls.Add(lblTicketPromedio);
             panelTicketPromedio.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges25.BottomLeft = false;
             panelTicketPromedio.CustomizableEdges = customizableEdges25;
             panelTicketPromedio.FillColor = Color.FromArgb(43, 50, 68);
             panelTicketPromedio.Location = new Point(1256, 59);
@@ -646,6 +653,7 @@
             panelNOrdenes.Controls.Add(imagenNOrdenes);
             panelNOrdenes.Controls.Add(lblNOrdenes);
             panelNOrdenes.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges29.BottomLeft = false;
             panelNOrdenes.CustomizableEdges = customizableEdges29;
             panelNOrdenes.FillColor = Color.FromArgb(43, 50, 68);
             panelNOrdenes.Location = new Point(857, 59);
@@ -704,14 +712,14 @@
             tituloNOrdenes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloNOrdenes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloNOrdenes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloNOrdenes.Location = new Point(934, 23);
+            tituloNOrdenes.Location = new Point(920, 23);
             tituloNOrdenes.Name = "tituloNOrdenes";
             tituloNOrdenes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloNOrdenes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloNOrdenes.ShadowDecoration.CustomizableEdges = customizableEdges32;
-            tituloNOrdenes.Size = new Size(142, 39);
+            tituloNOrdenes.Size = new Size(181, 39);
             tituloNOrdenes.TabIndex = 119;
-            tituloNOrdenes.Text = "N° DE ORDENES";
+            tituloNOrdenes.Text = "TOTAL ÓRDENES";
             tituloNOrdenes.UseTransparentBackground = true;
             // 
             // panelGanancias
@@ -721,6 +729,7 @@
             panelGanancias.Controls.Add(imagenGanancias);
             panelGanancias.Controls.Add(lblGanancias);
             panelGanancias.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges33.BottomLeft = false;
             panelGanancias.CustomizableEdges = customizableEdges33;
             panelGanancias.FillColor = Color.FromArgb(43, 50, 68);
             panelGanancias.Location = new Point(438, 59);
@@ -779,14 +788,14 @@
             tituloGanancias.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloGanancias.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloGanancias.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloGanancias.Location = new Point(532, 23);
+            tituloGanancias.Location = new Point(497, 23);
             tituloGanancias.Name = "tituloGanancias";
             tituloGanancias.PressedColor = Color.FromArgb(43, 50, 68);
             tituloGanancias.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloGanancias.ShadowDecoration.CustomizableEdges = customizableEdges36;
-            tituloGanancias.Size = new Size(116, 39);
+            tituloGanancias.Size = new Size(188, 39);
             tituloGanancias.TabIndex = 117;
-            tituloGanancias.Text = "GANANCIAS";
+            tituloGanancias.Text = "GANANCIAS TOTALES";
             tituloGanancias.UseTransparentBackground = true;
             // 
             // panelIngresos
@@ -796,6 +805,7 @@
             panelIngresos.Controls.Add(imagenIngresos);
             panelIngresos.Controls.Add(lblIngresos);
             panelIngresos.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges37.BottomLeft = false;
             panelIngresos.CustomizableEdges = customizableEdges37;
             panelIngresos.FillColor = Color.FromArgb(43, 50, 68);
             panelIngresos.Location = new Point(39, 59);
@@ -855,14 +865,14 @@
             tituloIngresos.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloIngresos.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloIngresos.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloIngresos.Location = new Point(139, 23);
+            tituloIngresos.Location = new Point(96, 23);
             tituloIngresos.Name = "tituloIngresos";
             tituloIngresos.PressedColor = Color.FromArgb(43, 50, 68);
             tituloIngresos.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloIngresos.ShadowDecoration.CustomizableEdges = customizableEdges40;
-            tituloIngresos.Size = new Size(104, 39);
+            tituloIngresos.Size = new Size(173, 39);
             tituloIngresos.TabIndex = 115;
-            tituloIngresos.Text = "INGRESOS";
+            tituloIngresos.Text = "INGRESOS TOTALES";
             tituloIngresos.UseTransparentBackground = true;
             // 
             // guna2Panel3
@@ -871,6 +881,8 @@
             guna2Panel3.BorderRadius = 25;
             guna2Panel3.Controls.Add(fondoDeTabla);
             guna2Panel3.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges43.BottomLeft = false;
+            customizableEdges43.BottomRight = false;
             guna2Panel3.CustomizableEdges = customizableEdges43;
             guna2Panel3.FillColor = Color.FromArgb(43, 50, 68);
             guna2Panel3.Location = new Point(55, 685);
@@ -908,64 +920,196 @@
             fondoDeTabla.Size = new Size(621, 30);
             fondoDeTabla.TabIndex = 98;
             // 
-            // pnlProductosVendidosXMes
+            // btnToggleFiltros
             // 
-            pnlProductosVendidosXMes.BorderColor = Color.FromArgb(43, 50, 68);
-            pnlProductosVendidosXMes.BorderRadius = 25;
-            pnlProductosVendidosXMes.Controls.Add(lblProductosVendidosXMes);
-            pnlProductosVendidosXMes.CustomBorderColor = Color.FromArgb(43, 50, 68);
-            pnlProductosVendidosXMes.CustomizableEdges = customizableEdges45;
-            pnlProductosVendidosXMes.FillColor = Color.FromArgb(43, 50, 68);
-            pnlProductosVendidosXMes.Location = new Point(1177, 862);
-            pnlProductosVendidosXMes.Name = "pnlProductosVendidosXMes";
-            pnlProductosVendidosXMes.ShadowDecoration.CustomizableEdges = customizableEdges46;
-            pnlProductosVendidosXMes.Size = new Size(318, 78);
-            pnlProductosVendidosXMes.TabIndex = 135;
+            btnToggleFiltros.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnToggleFiltros.BorderRadius = 25;
+            btnToggleFiltros.CustomizableEdges = customizableEdges45;
+            btnToggleFiltros.DisabledState.BorderColor = Color.DarkGray;
+            btnToggleFiltros.DisabledState.CustomBorderColor = Color.DarkGray;
+            btnToggleFiltros.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
+            btnToggleFiltros.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
+            btnToggleFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            btnToggleFiltros.Font = new Font("Segoe UI Emoji", 14F);
+            btnToggleFiltros.ForeColor = Color.White;
+            btnToggleFiltros.Location = new Point(1830, 21);
+            btnToggleFiltros.Name = "btnToggleFiltros";
+            btnToggleFiltros.ShadowDecoration.CustomizableEdges = customizableEdges46;
+            btnToggleFiltros.Size = new Size(50, 50);
+            btnToggleFiltros.TabIndex = 114;
+            btnToggleFiltros.Text = "⚙️";
             // 
-            // lblProductosVendidosXMes
+            // panelFiltros
             // 
-            lblProductosVendidosXMes.AutoSize = true;
-            lblProductosVendidosXMes.BackColor = Color.Transparent;
-            lblProductosVendidosXMes.Font = new Font("Segoe UI", 35F, FontStyle.Bold);
-            lblProductosVendidosXMes.ForeColor = SystemColors.ButtonHighlight;
-            lblProductosVendidosXMes.Location = new Point(125, -3);
-            lblProductosVendidosXMes.Name = "lblProductosVendidosXMes";
-            lblProductosVendidosXMes.Size = new Size(70, 82);
-            lblProductosVendidosXMes.TabIndex = 0;
-            lblProductosVendidosXMes.Text = "1";
-            lblProductosVendidosXMes.TextAlign = ContentAlignment.MiddleCenter;
+            panelFiltros.BackColor = Color.FromArgb(32, 36, 47);
+            panelFiltros.Controls.Add(btnCerrarPanel);
+            panelFiltros.Controls.Add(lblFiltrosTitulo);
+            panelFiltros.Controls.Add(etiquetaDesdeVentas);
+            panelFiltros.Controls.Add(fechaDesdeVentas);
+            panelFiltros.Controls.Add(etiquetaHastaVentas);
+            panelFiltros.Controls.Add(fechaHastaVentas);
+            panelFiltros.Controls.Add(lblFiltroTipo);
+            panelFiltros.Controls.Add(filtroTipoCliente);
+            panelFiltros.Controls.Add(lblFiltroMetodo);
+            panelFiltros.Controls.Add(filtroMetodoPago);
+            panelFiltros.Controls.Add(btnAplicarFiltros);
+            panelFiltros.Controls.Add(btnLimpiarFiltros);
+            panelFiltros.CustomizableEdges = customizableEdges53;
+            panelFiltros.Dock = DockStyle.Right;
+            panelFiltros.Location = new Point(1602, 0);
+            panelFiltros.Name = "panelFiltros";
+            panelFiltros.ShadowDecoration.CustomizableEdges = customizableEdges54;
+            panelFiltros.Size = new Size(300, 1032);
+            panelFiltros.TabIndex = 115;
             // 
-            // tituloProductosVendidosXMes
+            // btnCerrarPanel
             // 
-            tituloProductosVendidosXMes.AutoRoundedCorners = true;
-            tituloProductosVendidosXMes.BackColor = Color.Transparent;
-            tituloProductosVendidosXMes.BorderColor = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.BorderThickness = 1;
-            tituloProductosVendidosXMes.CustomBorderColor = Color.FromArgb(43, 50, 68);
-            customizableEdges47.BottomLeft = false;
-            customizableEdges47.BottomRight = false;
-            tituloProductosVendidosXMes.CustomizableEdges = customizableEdges47;
-            tituloProductosVendidosXMes.DisabledState.BorderColor = Color.DarkGray;
-            tituloProductosVendidosXMes.DisabledState.CustomBorderColor = Color.DarkGray;
-            tituloProductosVendidosXMes.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
-            tituloProductosVendidosXMes.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
-            tituloProductosVendidosXMes.FillColor = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.FocusedColor = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.Font = new Font("Arial Black", 7F, FontStyle.Bold);
-            tituloProductosVendidosXMes.ForeColor = Color.White;
-            tituloProductosVendidosXMes.HoverState.BorderColor = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloProductosVendidosXMes.Location = new Point(1202, 829);
-            tituloProductosVendidosXMes.Name = "tituloProductosVendidosXMes";
-            tituloProductosVendidosXMes.PressedColor = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
-            tituloProductosVendidosXMes.ShadowDecoration.CustomizableEdges = customizableEdges48;
-            tituloProductosVendidosXMes.Size = new Size(269, 39);
-            tituloProductosVendidosXMes.TabIndex = 136;
-            tituloProductosVendidosXMes.Text = "PRODUCTOS VENDIDOS DEL MES";
-            tituloProductosVendidosXMes.UseTransparentBackground = true;
+            btnCerrarPanel.AutoRoundedCorners = true;
+            btnCerrarPanel.BackColor = Color.Transparent;
+            btnCerrarPanel.CustomizableEdges = customizableEdges47;
+            btnCerrarPanel.DisabledState.BorderColor = Color.DarkGray;
+            btnCerrarPanel.DisabledState.CustomBorderColor = Color.DarkGray;
+            btnCerrarPanel.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
+            btnCerrarPanel.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
+            btnCerrarPanel.FillColor = Color.Transparent;
+            btnCerrarPanel.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnCerrarPanel.ForeColor = Color.FromArgb(180, 190, 205);
+            btnCerrarPanel.HoverState.FillColor = Color.FromArgb(245, 101, 101);
+            btnCerrarPanel.HoverState.ForeColor = Color.White;
+            btnCerrarPanel.Location = new Point(250, 12);
+            btnCerrarPanel.Name = "btnCerrarPanel";
+            btnCerrarPanel.ShadowDecoration.CustomizableEdges = customizableEdges48;
+            btnCerrarPanel.Size = new Size(38, 38);
+            btnCerrarPanel.TabIndex = 11;
+            btnCerrarPanel.Text = "✕";
+            // 
+            // lblFiltrosTitulo
+            // 
+            lblFiltrosTitulo.AutoSize = true;
+            lblFiltrosTitulo.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
+            lblFiltrosTitulo.ForeColor = Color.White;
+            lblFiltrosTitulo.Location = new Point(20, 30);
+            lblFiltrosTitulo.Name = "lblFiltrosTitulo";
+            lblFiltrosTitulo.Size = new Size(247, 38);
+            lblFiltrosTitulo.TabIndex = 0;
+            lblFiltrosTitulo.Text = "Filtros Avanzados";
+            // 
+            // etiquetaDesdeVentas
+            // 
+            etiquetaDesdeVentas.AutoSize = true;
+            etiquetaDesdeVentas.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            etiquetaDesdeVentas.ForeColor = Color.White;
+            etiquetaDesdeVentas.Location = new Point(73, 87);
+            etiquetaDesdeVentas.Name = "etiquetaDesdeVentas";
+            etiquetaDesdeVentas.Size = new Size(105, 21);
+            etiquetaDesdeVentas.TabIndex = 1;
+            etiquetaDesdeVentas.Text = "Fecha Desde";
+            // 
+            // fechaDesdeVentas
+            // 
+            fechaDesdeVentas.CalendarForeColor = Color.Black;
+            fechaDesdeVentas.CalendarMonthBackground = Color.White;
+            fechaDesdeVentas.CustomFormat = "dd/MM/yyyy";
+            fechaDesdeVentas.Font = new Font("Segoe UI", 9F);
+            fechaDesdeVentas.Format = DateTimePickerFormat.Custom;
+            fechaDesdeVentas.Location = new Point(73, 107);
+            fechaDesdeVentas.Name = "fechaDesdeVentas";
+            fechaDesdeVentas.ShowCheckBox = true;
+            fechaDesdeVentas.Size = new Size(162, 28);
+            fechaDesdeVentas.TabIndex = 2;
+            // 
+            // etiquetaHastaVentas
+            // 
+            etiquetaHastaVentas.AutoSize = true;
+            etiquetaHastaVentas.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            etiquetaHastaVentas.ForeColor = Color.White;
+            etiquetaHastaVentas.Location = new Point(73, 147);
+            etiquetaHastaVentas.Name = "etiquetaHastaVentas";
+            etiquetaHastaVentas.Size = new Size(101, 21);
+            etiquetaHastaVentas.TabIndex = 3;
+            etiquetaHastaVentas.Text = "Fecha Hasta";
+            // 
+            // fechaHastaVentas
+            // 
+            fechaHastaVentas.CalendarForeColor = Color.Black;
+            fechaHastaVentas.CalendarMonthBackground = Color.White;
+            fechaHastaVentas.CustomFormat = "dd/MM/yyyy";
+            fechaHastaVentas.Font = new Font("Segoe UI", 9F);
+            fechaHastaVentas.Format = DateTimePickerFormat.Custom;
+            fechaHastaVentas.Location = new Point(73, 167);
+            fechaHastaVentas.Name = "fechaHastaVentas";
+            fechaHastaVentas.ShowCheckBox = true;
+            fechaHastaVentas.Size = new Size(162, 28);
+            fechaHastaVentas.TabIndex = 4;
+            // 
+            // lblFiltroTipo
+            // 
+            lblFiltroTipo.AutoSize = true;
+            lblFiltroTipo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblFiltroTipo.ForeColor = Color.White;
+            lblFiltroTipo.Location = new Point(73, 207);
+            lblFiltroTipo.Name = "lblFiltroTipo";
+            lblFiltroTipo.Size = new Size(125, 21);
+            lblFiltroTipo.TabIndex = 5;
+            lblFiltroTipo.Text = "Tipo de Cliente";
+            // 
+            // filtroTipoCliente
+            // 
+            filtroTipoCliente.DropDownStyle = ComboBoxStyle.DropDownList;
+            filtroTipoCliente.Font = new Font("Segoe UI", 9F);
+            filtroTipoCliente.Items.AddRange(new object[] { "Todos", "Consumidor Final", "Registrados" });
+            filtroTipoCliente.Location = new Point(73, 227);
+            filtroTipoCliente.Name = "filtroTipoCliente";
+            filtroTipoCliente.Size = new Size(162, 29);
+            filtroTipoCliente.TabIndex = 6;
+            // 
+            // lblFiltroMetodo
+            // 
+            lblFiltroMetodo.AutoSize = true;
+            lblFiltroMetodo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblFiltroMetodo.ForeColor = Color.White;
+            lblFiltroMetodo.Location = new Point(73, 267);
+            lblFiltroMetodo.Name = "lblFiltroMetodo";
+            lblFiltroMetodo.Size = new Size(136, 21);
+            lblFiltroMetodo.TabIndex = 7;
+            lblFiltroMetodo.Text = "Método de Pago";
+            // 
+            // filtroMetodoPago
+            // 
+            filtroMetodoPago.DropDownStyle = ComboBoxStyle.DropDownList;
+            filtroMetodoPago.Font = new Font("Segoe UI", 9F);
+            filtroMetodoPago.Location = new Point(73, 287);
+            filtroMetodoPago.Name = "filtroMetodoPago";
+            filtroMetodoPago.Size = new Size(162, 29);
+            filtroMetodoPago.TabIndex = 8;
+            // 
+            // btnAplicarFiltros
+            // 
+            btnAplicarFiltros.AutoRoundedCorners = true;
+            btnAplicarFiltros.CustomizableEdges = customizableEdges49;
+            btnAplicarFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            btnAplicarFiltros.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnAplicarFiltros.ForeColor = Color.White;
+            btnAplicarFiltros.Location = new Point(68, 349);
+            btnAplicarFiltros.Name = "btnAplicarFiltros";
+            btnAplicarFiltros.ShadowDecoration.CustomizableEdges = customizableEdges50;
+            btnAplicarFiltros.Size = new Size(176, 45);
+            btnAplicarFiltros.TabIndex = 9;
+            btnAplicarFiltros.Text = "APLICAR FILTROS";
+            // 
+            // btnLimpiarFiltros
+            // 
+            btnLimpiarFiltros.AutoRoundedCorners = true;
+            btnLimpiarFiltros.CustomizableEdges = customizableEdges51;
+            btnLimpiarFiltros.FillColor = Color.FromArgb(43, 50, 68);
+            btnLimpiarFiltros.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnLimpiarFiltros.ForeColor = Color.White;
+            btnLimpiarFiltros.Location = new Point(68, 405);
+            btnLimpiarFiltros.Name = "btnLimpiarFiltros";
+            btnLimpiarFiltros.ShadowDecoration.CustomizableEdges = customizableEdges52;
+            btnLimpiarFiltros.Size = new Size(176, 45);
+            btnLimpiarFiltros.TabIndex = 10;
+            btnLimpiarFiltros.Text = "LIMPIAR FILTROS";
             // 
             // ReporteGerenteVentas
             // 
@@ -973,9 +1117,9 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(25, 29, 36);
             ClientSize = new Size(1902, 1032);
-            Controls.Add(pnlProductosVendidosXMes);
+            Controls.Add(panelFiltros);
+            Controls.Add(btnToggleFiltros);
             Controls.Add(btnExportar);
-            Controls.Add(tituloProductosVendidosXMes);
             Controls.Add(pnlGananciasMes);
             Controls.Add(tituloGananciasMes);
             Controls.Add(pnlOrdenesMes);
@@ -1018,8 +1162,8 @@
             panelIngresos.ResumeLayout(false);
             panelIngresos.PerformLayout();
             guna2Panel3.ResumeLayout(false);
-            pnlProductosVendidosXMes.ResumeLayout(false);
-            pnlProductosVendidosXMes.PerformLayout();
+            panelFiltros.ResumeLayout(false);
+            panelFiltros.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -1065,8 +1209,19 @@
         private DataGridViewTextBoxColumn CNombre;
         private DataGridViewTextBoxColumn COrdenes;
         private DataGridViewTextBoxColumn CIngresos;
-        private Guna.UI2.WinForms.Guna2Panel pnlProductosVendidosXMes;
-        private Label lblProductosVendidosXMes;
-        private Guna.UI2.WinForms.Guna2Button tituloProductosVendidosXMes;
+        private Guna.UI2.WinForms.Guna2Button btnToggleFiltros;
+        private Guna.UI2.WinForms.Guna2Panel panelFiltros;
+        private Label lblFiltrosTitulo;
+        private Guna.UI2.WinForms.Guna2Button btnCerrarPanel;
+        private Label etiquetaDesdeVentas;
+        private DateTimePicker fechaDesdeVentas;
+        private Label etiquetaHastaVentas;
+        private DateTimePicker fechaHastaVentas;
+        private Label lblFiltroTipo;
+        private ComboBox filtroTipoCliente;
+        private Label lblFiltroMetodo;
+        private ComboBox filtroMetodoPago;
+        private Guna.UI2.WinForms.Guna2Button btnAplicarFiltros;
+        private Guna.UI2.WinForms.Guna2Button btnLimpiarFiltros;
     }
 }

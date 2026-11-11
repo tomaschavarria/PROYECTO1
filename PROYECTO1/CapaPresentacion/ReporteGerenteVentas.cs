@@ -23,7 +23,7 @@ namespace PROYECTO1.CapaPresentacion
         private Label lblVenMesComp = null!;
         private Label lblGananciasMesComp = null!;
         private Label lblOrdenesMesComp = null!;
-        private Label lblProdVendidosMesComp = null!;
+        private bool panelFiltrosAbierto = false;
 
         public ReporteGerenteVentas()
         {
@@ -31,23 +31,98 @@ namespace PROYECTO1.CapaPresentacion
             this.Load += ReporteGerenteVentas_Load;
             panelGraficoLineasDefault.Paint += PanelGraficoLineasDefault_Paint;
             btnExportar.Click += BtnExportar_Click;
+
+            btnToggleFiltros.Click += BtnToggleFiltros_Click;
+            btnCerrarPanel.Click += BtnCerrarPanel_Click;
+            btnAplicarFiltros.Click += BtnAplicarFiltros_Click;
+            btnLimpiarFiltros.Click += BtnLimpiarFiltros_Click;
+
+            ConfigurarCombosFiltros();
         }
 
         private void ReporteGerenteVentas_Load(object? sender, EventArgs e)
         {
             ConfigurarEstiloLabels();
             ConfigurarColumnasTabla();
-            CargarMetricasGerente();
-            CargarMetricasMesGerente();
-            CargarTop10Productos();
-            CargarGraficoCategorias();
-            CargarGraficoHistorico();
+
+            // Ocultar y configurar el panel lateral de filtros
+            panelFiltros.Dock = DockStyle.Right;
+            panelFiltros.Visible = false;
+            btnToggleFiltros.BorderRadius = btnToggleFiltros.Width / 2;
+
+            RecargarDatosFiltrados();
+            CargarMetricasMesGerente(); // KPI mensuales independientes del filtro
+        }
+
+        private void ConfigurarCombosFiltros()
+        {
+            fechaDesdeVentas.Checked = false;
+            fechaHastaVentas.Checked = false;
+            filtroTipoCliente.SelectedIndex = 0;
+
+            filtroMetodoPago.Items.Clear();
+            filtroMetodoPago.Items.AddRange(new object[] { "Todos", "Efectivo", "Credito", "Debito", "Transferencia" });
+            filtroMetodoPago.SelectedIndex = 0;
+        }
+
+        private void BtnToggleFiltros_Click(object? sender, EventArgs e)
+        {
+            panelFiltrosAbierto = !panelFiltrosAbierto;
+            panelFiltros.Visible = panelFiltrosAbierto;
+
+            if (panelFiltrosAbierto)
+            {
+                panelFiltros.BringToFront();
+                btnToggleFiltros.FillColor = Color.FromArgb(43, 50, 68);
+            }
+            else
+            {
+                btnToggleFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            }
+        }
+
+        private void BtnCerrarPanel_Click(object? sender, EventArgs e)
+        {
+            if (panelFiltrosAbierto) BtnToggleFiltros_Click(null, null);
+        }
+
+        private void BtnLimpiarFiltros_Click(object? sender, EventArgs e)
+        {
+            ConfigurarCombosFiltros();
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        private void BtnAplicarFiltros_Click(object? sender, EventArgs e)
+        {
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        private void RecargarDatosFiltrados()
+        {
+            DateTime? desde = fechaDesdeVentas.Checked ? fechaDesdeVentas.Value.Date : null;
+            DateTime? hasta = fechaHastaVentas.Checked ? fechaHastaVentas.Value.Date : null;
+            string tipo = filtroTipoCliente.SelectedItem?.ToString() ?? "Todos";
+            string metodo = filtroMetodoPago.SelectedItem?.ToString() ?? "Todos";
+
+            CargarMetricasGerente(desde, hasta, tipo, metodo);
+            CargarTop10Productos(desde, hasta, tipo, metodo);
+            CargarGraficoCategorias(desde, hasta, tipo, metodo);
+            CargarGraficoHistorico(desde, hasta, tipo, metodo);
         }
 
         private void ConfigurarEstiloLabels()
         {
-            // Corrige texto de la etiqueta si vino por defecto del diseñador
+            // Unificación de términos
+            tituloIngresos.Text = "INGRESOS TOTALES";
+            tituloGanancias.Text = "GANANCIAS TOTALES";
+            tituloNOrdenes.Text = "TOTAL ÓRDENES";
+            tituloTicketPromedio.Text = "TICKET PROMEDIO";
+
+            tituloVenMes.Text = "INGRESOS DEL MES";
             tituloGananciasMes.Text = "GANANCIAS DEL MES";
+            tituloOrdenesMes.Text = "ÓRDENES DEL MES";
 
             void ConfigurarTarjetaKPI(Guna2Panel panel, Label lblImg, Label lblTexto, float tamanoFuente)
             {
@@ -105,7 +180,6 @@ namespace PROYECTO1.CapaPresentacion
             ConfigurarTarjetaMes(pnlVenMes, lblVenMes, out lblVenMesComp);
             ConfigurarTarjetaMes(pnlGananciasMes, lblGananciasMes, out lblGananciasMesComp);
             ConfigurarTarjetaMes(pnlOrdenesMes, lblOrdenesMes, out lblOrdenesMesComp);
-            ConfigurarTarjetaMes(pnlProductosVendidosXMes, lblProductosVendidosXMes, out lblProdVendidosMesComp);
         }
 
         private void ConfigurarColumnasTabla()
@@ -133,11 +207,11 @@ namespace PROYECTO1.CapaPresentacion
             CIngresos.FillWeight = 20;
         }
 
-        private void CargarMetricasGerente()
+        private void CargarMetricasGerente(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             try
             {
-                EReporteKpiHistoricoGerente kpi = _lReporte.ObtenerKpisHistoricosGerente();
+                EReporteKpiHistoricoGerente kpi = _lReporte.ObtenerKpisHistoricosGerente(desde, hasta, tipo, metodo);
 
                 lblIngresos.Text = FormatearMonedaCompacta(kpi.Ingresos);
                 lblGanancias.Text = FormatearMonedaCompacta(kpi.Ganancias);
@@ -165,17 +239,14 @@ namespace PROYECTO1.CapaPresentacion
                 lblVenMes.Text = FormatearMonedaCompacta(kpi.VentasActual);
                 lblGananciasMes.Text = FormatearMonedaCompacta(kpi.GananciasActual);
                 lblOrdenesMes.Text = kpi.OrdenesActual.ToString("N0", cultura);
-                lblProductosVendidosXMes.Text = kpi.ProdVendidosActual.ToString("N0", cultura);
 
                 AsignarComparativa(lblVenMesComp, kpi.VentasActual, kpi.VentasAnterior, esMoneda: true);
                 AsignarComparativa(lblGananciasMesComp, kpi.GananciasActual, kpi.GananciasAnterior, esMoneda: true);
                 AsignarComparativa(lblOrdenesMesComp, kpi.OrdenesActual, kpi.OrdenesAnterior, esMoneda: false);
-                AsignarComparativa(lblProdVendidosMesComp, kpi.ProdVendidosActual, kpi.ProdVendidosAnterior, esMoneda: false);
 
                 _toolTip.SetToolTip(lblVenMes, $"Este mes (al día {ahora.Day}): $ {kpi.VentasActual:N2}\nMes anterior (mismo corte): $ {kpi.VentasAnterior:N2}");
                 _toolTip.SetToolTip(lblGananciasMes, $"Este mes: $ {kpi.GananciasActual:N2}\nMes anterior: $ {kpi.GananciasAnterior:N2}");
                 _toolTip.SetToolTip(lblOrdenesMes, $"Este mes: {kpi.OrdenesActual:N0}\nMes anterior: {kpi.OrdenesAnterior:N0}");
-                _toolTip.SetToolTip(lblProductosVendidosXMes, $"Este mes: {kpi.ProdVendidosActual:N0}\nMes anterior: {kpi.ProdVendidosAnterior:N0}");
             }
             catch (Exception ex)
             {
@@ -215,11 +286,11 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarTop10Productos()
+        private void CargarTop10Productos(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             try
             {
-                DataTable dt = _lReporte.ObtenerTop10ProductosGerente();
+                DataTable dt = _lReporte.ObtenerTop10ProductosGerente(desde, hasta, tipo, metodo);
                 dataGridViewVentas.DataSource = dt;
                 dataGridViewVentas.ClearSelection();
             }
@@ -229,12 +300,12 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarGraficoHistorico()
+        private void CargarGraficoHistorico(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             datosHistoricos.Clear();
             try
             {
-                datosHistoricos.AddRange(_lReporte.ObtenerGraficoHistoricoGerente());
+                datosHistoricos.AddRange(_lReporte.ObtenerGraficoHistoricoGerente(desde, hasta, tipo, metodo));
                 panelGraficoLineasDefault.Invalidate();
             }
             catch (Exception ex)
@@ -316,13 +387,13 @@ namespace PROYECTO1.CapaPresentacion
             g.DrawLines(penLinea, puntos);
         }
 
-        private void CargarGraficoCategorias()
+        private void CargarGraficoCategorias(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             panelContenedorBarras.Controls.Clear();
 
             try
             {
-                DataTable dt = _lReporte.ObtenerTopCategoriasGerente();
+                DataTable dt = _lReporte.ObtenerTopCategoriasGerente(desde, hasta, tipo, metodo);
 
                 if (dt.Rows.Count == 0)
                 {

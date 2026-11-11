@@ -140,6 +140,8 @@
             guna2Panel2 = new Guna.UI2.WinForms.Guna2Panel();
             guna2Panel4 = new Guna.UI2.WinForms.Guna2Panel();
             textBoxImporteTotal = new Guna.UI2.WinForms.Guna2TextBox();
+            labelAjustePago = new Label();
+            labelMontoAjustePago = new Label();
             guna2Panel5 = new Guna.UI2.WinForms.Guna2Panel();
             guna2Panel3 = new Guna.UI2.WinForms.Guna2Panel();
             guna2Panel6 = new Guna.UI2.WinForms.Guna2Panel();
@@ -237,7 +239,7 @@
             // 
             // CPrecioUnitario
             // 
-            CPrecioUnitario.HeaderText = "Precio Unitario";
+            CPrecioUnitario.HeaderText = "P. unitario";
             CPrecioUnitario.MinimumWidth = 7;
             CPrecioUnitario.Name = "CPrecioUnitario";
             CPrecioUnitario.ReadOnly = true;
@@ -843,14 +845,16 @@
             // 
             guna2Panel4.BorderColor = Color.FromArgb(43, 50, 68);
             guna2Panel4.BorderRadius = 25;
+            guna2Panel4.Controls.Add(labelMontoAjustePago);
+            guna2Panel4.Controls.Add(labelAjustePago);
             guna2Panel4.Controls.Add(textBoxImporteTotal);
             guna2Panel4.CustomBorderColor = Color.FromArgb(43, 50, 68);
             guna2Panel4.CustomizableEdges = customizableEdges45;
             guna2Panel4.FillColor = Color.FromArgb(43, 50, 68);
-            guna2Panel4.Location = new Point(1052, 683);
+            guna2Panel4.Location = new Point(1039, 683);
             guna2Panel4.Name = "guna2Panel4";
             guna2Panel4.ShadowDecoration.CustomizableEdges = customizableEdges46;
-            guna2Panel4.Size = new Size(215, 84);
+            guna2Panel4.Size = new Size(254, 124);
             guna2Panel4.TabIndex = 81;
             // 
             // textBoxImporteTotal
@@ -869,15 +873,39 @@
             textBoxImporteTotal.Font = new Font("Segoe UI", 9F);
             textBoxImporteTotal.ForeColor = Color.White;
             textBoxImporteTotal.HoverState.BorderColor = Color.FromArgb(94, 148, 255);
-            textBoxImporteTotal.Location = new Point(35, 25);
+            textBoxImporteTotal.Location = new Point(37, 18);
             textBoxImporteTotal.Margin = new Padding(4, 4, 4, 4);
             textBoxImporteTotal.Name = "textBoxImporteTotal";
             textBoxImporteTotal.PlaceholderText = "";
             textBoxImporteTotal.SelectedText = "";
             textBoxImporteTotal.ShadowDecoration.CustomizableEdges = customizableEdges44;
-            textBoxImporteTotal.Size = new Size(148, 30);
+            textBoxImporteTotal.Size = new Size(180, 33);
             textBoxImporteTotal.TabIndex = 80;
             textBoxImporteTotal.TextAlign = HorizontalAlignment.Center;
+            // 
+            // labelAjustePago
+            // 
+            labelAjustePago.BackColor = Color.Transparent;
+            labelAjustePago.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            labelAjustePago.ForeColor = Color.FromArgb(191, 220, 199);
+            labelAjustePago.Location = new Point(9, 60);
+            labelAjustePago.Name = "labelAjustePago";
+            labelAjustePago.Size = new Size(236, 22);
+            labelAjustePago.TabIndex = 90;
+            labelAjustePago.Text = "Descuento (10%)";
+            labelAjustePago.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // labelMontoAjustePago
+            // 
+            labelMontoAjustePago.BackColor = Color.Transparent;
+            labelMontoAjustePago.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            labelMontoAjustePago.ForeColor = Color.FromArgb(225, 243, 227);
+            labelMontoAjustePago.Location = new Point(9, 83);
+            labelMontoAjustePago.Name = "labelMontoAjustePago";
+            labelMontoAjustePago.Size = new Size(236, 27);
+            labelMontoAjustePago.TabIndex = 91;
+            labelMontoAjustePago.Text = "-$ 0,00";
+            labelMontoAjustePago.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // guna2Panel5
             // 
@@ -1230,6 +1258,8 @@
         private Label lblStock;
         private Guna.UI2.WinForms.Guna2TextBox textBoxStock;
         private Guna.UI2.WinForms.Guna2TextBox textBoxImporteTotal;
+        private Label labelAjustePago;
+        private Label labelMontoAjustePago;
         private DataGridViewTextBoxColumn CidProducto;
         private DataGridViewTextBoxColumn CNombre;
         private DataGridViewTextBoxColumn CTalle;

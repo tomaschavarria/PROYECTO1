@@ -20,16 +20,16 @@ namespace PROYECTO1.CapaPresentacion
         private readonly CultureInfo cultura = CultureInfo.GetCultureInfo("es-AR");
         private readonly List<(DateTime Fecha, decimal Total)> datosHistoricos = new();
         private readonly ToolTip _toolTip = new();
-        private readonly Font _fontEmoji = new("Segoe UI Emoji", 11F, FontStyle.Regular);
+        private readonly Font _fontEmoji = new("Segoe UI Emoji", 12F, FontStyle.Regular);
 
-        // BindingSource para habilitar búsqueda y filtrado en memoria
         private readonly BindingSource _bsVentas = new();
         private DataTable _dtVentas = null!;
 
         private Label lblVenMesComp = null!;
         private Label lblOrdenesMesComp = null!;
-        private Label lblClientesMesComp = null!;
+        private Label lblTicketMesComp = null!;
 
+        private bool panelFiltrosAbierto = false;
         private int IdUsuarioActual => SesionActual.Usuario?.Id ?? 1;
 
         public ReporteVendedor()
@@ -38,33 +38,130 @@ namespace PROYECTO1.CapaPresentacion
             this.Load += Reportes_Load;
             panelGraficoLineasDefault.Paint += PanelGraficoLineasDefault_Paint;
 
-            // Eventos del buscador y exportador
-            textBoxBuscador.TextChanged += (_, __) => AplicarFiltroVentas();
-            comboBoxColumna.SelectedIndexChanged += (_, __) => AplicarFiltroVentas();
+            // Eventos del buscador local de la tabla
+            textBoxBuscador.TextChanged += (_, __) => AplicarBusquedaLocal();
+            comboBoxColumna.SelectedIndexChanged += (_, __) => AplicarBusquedaLocal();
             btnExportar.Click += BtnExportar_Click;
+
+            // Eventos del panel de filtros
+            btnToggleFiltros.Click += BtnToggleFiltros_Click;
+            btnAplicarFiltros.Click += BtnAplicarFiltros_Click;
+            btnLimpiarFiltros.Click += BtnLimpiarFiltros_Click;
+            btnCerrarPanel.Click += BtnCerrarPanel_Click;
+
+            // Formateo especial para el DNI del consumidor final
+            dataGridViewVentas.CellFormatting += DataGridViewVentas_CellFormatting;
+
+            ConfigurarCombosFiltros();
         }
 
         private void Reportes_Load(object? sender, EventArgs e)
         {
             ConfigurarEstiloLabels();
             ConfigurarColumnasTabla();
-            ConfigurarBuscador();
-            CargarMetricasVendedor();
+            ConfigurarBuscadorLocal();
+
+            // Ocultar panel de filtros al inicio y anclarlo a la derecha
+            panelFiltros.Dock = DockStyle.Right;
+            panelFiltros.Visible = false;
+
+            // Aseguramos que el botón de filtros sea perfectamente redondo
+            btnToggleFiltros.BorderRadius = btnToggleFiltros.Width / 2;
+
+            // Carga inicial (Sin filtros de fecha)
+            RecargarDatosFiltrados();
+
+            // Las estadísticas del mes no se ven afectadas por los filtros
             CargarMetricasMesVendedor();
-            CargarHistorialVentas();
-            CargarGraficoCategorias();
-            CargarGraficoHistorico();
+        }
+
+        private void ConfigurarCombosFiltros()
+        {
+            fechaDesdeVentas.Checked = false;
+            fechaHastaVentas.Checked = false;
+
+            filtroTipoCliente.SelectedIndex = 0;
+
+            // Removido Mercado Pago a pedido
+            filtroMetodoPago.Items.Clear();
+            filtroMetodoPago.Items.AddRange(new object[] { "Todos", "Efectivo", "Credito", "Debito", "Transferencia" });
+            filtroMetodoPago.SelectedIndex = 0;
+        }
+
+        private void BtnToggleFiltros_Click(object? sender, EventArgs e)
+        {
+            panelFiltrosAbierto = !panelFiltrosAbierto;
+            panelFiltros.Visible = panelFiltrosAbierto;
+
+            if (panelFiltrosAbierto)
+            {
+                panelFiltros.BringToFront();
+                btnToggleFiltros.FillColor = Color.FromArgb(43, 50, 68);
+            }
+            else
+            {
+                btnToggleFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            }
+        }
+
+        private void BtnCerrarPanel_Click(object? sender, EventArgs e)
+        {
+            if (panelFiltrosAbierto)
+            {
+                BtnToggleFiltros_Click(null, null);
+            }
+        }
+
+        private void BtnLimpiarFiltros_Click(object? sender, EventArgs e)
+        {
+            ConfigurarCombosFiltros();
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null); // Cerramos el panel después de limpiar
+        }
+
+        private void BtnAplicarFiltros_Click(object? sender, EventArgs e)
+        {
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null); // Cerramos el panel luego de aplicar
+        }
+
+        private void RecargarDatosFiltrados()
+        {
+            DateTime? desde = fechaDesdeVentas.Checked ? fechaDesdeVentas.Value.Date : null;
+            DateTime? hasta = fechaHastaVentas.Checked ? fechaHastaVentas.Value.Date : null;
+            string tipo = filtroTipoCliente.SelectedItem?.ToString() ?? "Todos";
+            string metodo = filtroMetodoPago.SelectedItem?.ToString() ?? "Todos";
+
+            CargarMetricasVendedor(desde, hasta, tipo, metodo);
+            CargarGraficoCategorias(desde, hasta, tipo, metodo);
+            CargarGraficoHistorico(desde, hasta, tipo, metodo);
+            CargarHistorialVentas(desde, hasta, tipo, metodo);
+        }
+
+        private void DataGridViewVentas_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            // Si el cliente es "Consumidor Final", forzamos el DNI a 00000000
+            if (e.RowIndex >= 0 && dataGridViewVentas.Columns[e.ColumnIndex].Name == "CDNI")
+            {
+                var cliente = dataGridViewVentas.Rows[e.RowIndex].Cells["CCliente"].Value?.ToString();
+                if (cliente == "Consumidor Final")
+                {
+                    e.Value = "00000000";
+                    e.FormattingApplied = true;
+                }
+            }
         }
 
         private void ConfigurarEstiloLabels()
         {
-            // Configura cada tarjeta de KPI superior para que la imagen y el texto convivan sin taparse
+            // CORRECCIÓN: Título actualizado
+            tituloVentasCleinte.Text = "CLIENTES ATENDIDOS";
+
             void ConfigurarTarjetaKPI(Guna2Panel panel, Label lblImg, Label lblTexto, float tamanoFuente)
             {
-                // 1. Imagen a la izquierda, centrada verticalmente
                 lblImg.AutoSize = false;
                 lblImg.Dock = DockStyle.None;
-                lblImg.Text = string.Empty; // Limpia espacios residuales
+                lblImg.Text = string.Empty;
                 lblImg.Size = new Size(60, 60);
                 lblImg.Location = new Point(18, (panel.Height - 60) / 2);
                 lblImg.ImageAlign = ContentAlignment.MiddleCenter;
@@ -72,7 +169,6 @@ namespace PROYECTO1.CapaPresentacion
                 lblImg.BackColor = Color.Transparent;
                 lblImg.BringToFront();
 
-                // 2. Número a la derecha, ocupando el resto del panel sin invadir el icono
                 lblTexto.AutoSize = false;
                 lblTexto.Dock = DockStyle.None;
                 lblTexto.Location = new Point(85, 10);
@@ -86,8 +182,7 @@ namespace PROYECTO1.CapaPresentacion
 
             ConfigurarTarjetaKPI(panelVentas, imagenVentas, lblVentas, 18F);
             ConfigurarTarjetaKPI(panelNOrdenes, imagenNOrdenes, lblNOrdenes, 26F);
-            ConfigurarTarjetaKPI(panelClientes, imagenClientes, lblClientes, 26F);
-            ConfigurarTarjetaKPI(panelVentasCliente, imagenVxCliente, lblVentasCliente, 18F);
+            ConfigurarTarjetaKPI(panelVentasCliente, imagenVxCliente, lblVentasCliente, 26F);
 
             void ConfigurarTarjetaMes(Guna2Panel panel, Label lblPrincipal, out Label lblComparativa)
             {
@@ -116,7 +211,7 @@ namespace PROYECTO1.CapaPresentacion
 
             ConfigurarTarjetaMes(pnlVenMes, lblVenMes, out lblVenMesComp);
             ConfigurarTarjetaMes(pnlOrdenesMes, lblOrdenesMes, out lblOrdenesMesComp);
-            ConfigurarTarjetaMes(pnlClientesMes, lblClientesMes, out lblClientesMesComp);
+            ConfigurarTarjetaMes(pnlTicketMes, lblTicketMes, out lblTicketMesComp);
         }
 
         private void ConfigurarColumnasTabla()
@@ -151,17 +246,16 @@ namespace PROYECTO1.CapaPresentacion
             dataGridViewVentas.RowsDefaultCellStyle.ForeColor = Color.White;
 
             CFactura.FlatStyle = FlatStyle.Flat;
-            CFactura.Text = "🧾";
+            CFactura.Text = "";
             CFactura.UseColumnTextForButtonValue = true;
 
             dataGridViewVentas.ShowCellToolTips = true;
             dataGridViewVentas.CellToolTipTextNeeded += (s, e) =>
             {
                 if (e.RowIndex >= 0 && e.ColumnIndex == CFactura.Index)
-                    e.ToolTipText = "Ver Comprobante";
+                    e.ToolTipText = "Ver Comprobante de Venta";
             };
 
-            // Responsividad automática sin cálculo de pixeles
             dataGridViewVentas.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             CNVenta.MinimumWidth = 80;
@@ -184,15 +278,13 @@ namespace PROYECTO1.CapaPresentacion
             dataGridViewVentas.CellContentClick += DataGridViewVentas_CellContentClick;
         }
 
-        private void ConfigurarBuscador()
+        private void ConfigurarBuscadorLocal()
         {
             var columnas = new List<KeyValuePair<string, string>>
             {
                 new("Cliente",         "Cliente"),
-                new("Fecha",           "Fecha"),
                 new("DNI",             "DNI"),
                 new("N° de Venta",     "NroVenta"),
-                new("Método de Pago",  "MetodoPago")
             };
 
             comboBoxColumna.DataSource = columnas;
@@ -201,8 +293,6 @@ namespace PROYECTO1.CapaPresentacion
             comboBoxColumna.SelectedIndex = 0;
         }
 
-
-        // Escapa los caracteres especiales del LIKE de DataView para que escribir [ ] * % ' no provoque una excepción
         private static string EscaparLike(string valor)
         {
             var sb = new System.Text.StringBuilder(valor.Length);
@@ -210,68 +300,40 @@ namespace PROYECTO1.CapaPresentacion
             {
                 switch (c)
                 {
-                    case '[':
-                    case ']':
-                    case '%':
-                    case '*':
-                        sb.Append('[').Append(c).Append(']');
-                        break;
-                    case '\'':
-                        sb.Append("''");
-                        break;
-                    default:
-                        sb.Append(c);
-                        break;
+                    case '[': case ']': case '%': case '*': sb.Append('[').Append(c).Append(']'); break;
+                    case '\'': sb.Append("''"); break;
+                    default: sb.Append(c); break;
                 }
             }
             return sb.ToString();
         }
 
-        private void AplicarFiltroVentas()
+        private void AplicarBusquedaLocal()
         {
             if (_dtVentas == null) return;
+            var condiciones = new List<string>();
 
             string texto = EscaparLike((textBoxBuscador.Text ?? string.Empty).Trim());
-            if (string.IsNullOrEmpty(texto))
+            if (!string.IsNullOrEmpty(texto))
             {
-                _bsVentas.Filter = string.Empty;
-                return;
-            }
-
-            string columna = comboBoxColumna.SelectedValue?.ToString() ?? "Cliente";
-
-            if (columna == "Fecha")
-            {
-                if (DateTime.TryParse(texto, cultura, DateTimeStyles.None, out DateTime fechaFiltro) ||
-                    DateTime.TryParse(texto, out fechaFiltro))
-                {
-                    DateTime desde = fechaFiltro.Date;
-                    DateTime hasta = desde.AddDays(1);
-                    _bsVentas.Filter = $"([Fecha] >= #{desde:yyyy-MM-dd 00:00:00}# AND [Fecha] < #{hasta:yyyy-MM-dd 00:00:00}#) OR CONVERT([Fecha], 'System.String') LIKE '%{texto}%'";
-                }
+                string columna = comboBoxColumna.SelectedValue?.ToString() ?? "Cliente";
+                if (columna == "NroVenta" || columna == "DNI")
+                    condiciones.Add($"CONVERT([{columna}], 'System.String') LIKE '%{texto}%'");
                 else
-                {
-                    _bsVentas.Filter = $"CONVERT([Fecha], 'System.String') LIKE '%{texto}%'";
-                }
+                    condiciones.Add($"[{columna}] LIKE '%{texto}%'");
             }
-            else if (columna == "NroVenta" || columna == "DNI")
-            {
-                _bsVentas.Filter = $"CONVERT([{columna}], 'System.String') LIKE '%{texto}%'";
-            }
-            else
-            {
-                _bsVentas.Filter = $"[{columna}] LIKE '%{texto}%'";
-            }
+
+            _bsVentas.Filter = string.Join(" AND ", condiciones);
         }
 
-        private void CargarHistorialVentas()
+        private void CargarHistorialVentas(DateTime? desde, DateTime? hasta, string tipo, string metodo)
         {
             try
             {
-                _dtVentas = _lReporte.ObtenerHistorialVentas(IdUsuarioActual);
+                _dtVentas = _lReporte.ObtenerHistorialVentas(IdUsuarioActual, desde, hasta, tipo, metodo);
                 _bsVentas.DataSource = _dtVentas;
                 dataGridViewVentas.DataSource = _bsVentas;
-                AplicarFiltroVentas();
+                AplicarBusquedaLocal();
             }
             catch (Exception ex)
             {
@@ -291,7 +353,7 @@ namespace PROYECTO1.CapaPresentacion
             {
                 Filter = "Archivo CSV (*.csv)|*.csv|Archivo de Texto (*.txt)|*.txt",
                 Title = "Guardar historial de ventas",
-                FileName = $"Ventas_{DateTime.Now:yyyyMMdd_HHmmss}"
+                FileName = $"Ventas_Vendedor_{DateTime.Now:yyyyMMdd_HHmmss}"
             };
 
             if (sfd.ShowDialog() == DialogResult.OK)
@@ -303,8 +365,7 @@ namespace PROYECTO1.CapaPresentacion
 
                 foreach (DataGridViewColumn col in dataGridViewVentas.Columns)
                 {
-                    if (col != CFactura)
-                        cabeceras.Add(col.HeaderText);
+                    if (col != CFactura) cabeceras.Add(col.HeaderText);
                 }
                 sw.WriteLine(string.Join(separador, cabeceras));
 
@@ -317,12 +378,18 @@ namespace PROYECTO1.CapaPresentacion
                     {
                         if (cell.OwningColumn == CFactura) continue;
 
-                        string valor = cell.FormattedValue?.ToString()?.Replace("\"", "\"\"") ?? "";
-
-                        if (separador == ",")
-                            celdas.Add($"\"{valor}\"");
+                        // Forzamos que la exportación respete el DNI modificado visualmente
+                        string valor;
+                        if (cell.OwningColumn.Name == "CDNI" && row.Cells["CCliente"].Value?.ToString() == "Consumidor Final")
+                        {
+                            valor = "00000000";
+                        }
                         else
-                            celdas.Add(valor);
+                        {
+                            valor = cell.FormattedValue?.ToString()?.Replace("\"", "\"\"") ?? "";
+                        }
+
+                        celdas.Add(separador == "," ? $"\"{valor}\"" : valor);
                     }
                     sw.WriteLine(string.Join(separador, celdas));
                 }
@@ -335,18 +402,32 @@ namespace PROYECTO1.CapaPresentacion
         {
             if (e.RowIndex >= 0 && e.ColumnIndex == CFactura.Index)
             {
-                using var brushFila = new SolidBrush(Color.FromArgb(43, 50, 68));
-                e.Graphics.FillRectangle(brushFila, e.CellBounds);
+                e.Paint(e.CellBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentBackground);
+
+                using var brushFondoCelda = new SolidBrush(e.State.HasFlag(DataGridViewElementStates.Selected) ? dataGridViewVentas.DefaultCellStyle.SelectionBackColor : dataGridViewVentas.DefaultCellStyle.BackColor);
+                e.Graphics.FillRectangle(brushFondoCelda, e.CellBounds);
 
                 var rectBoton = new Rectangle(
-                    e.CellBounds.X + 6,
-                    e.CellBounds.Y + 3,
-                    e.CellBounds.Width - 12,
-                    e.CellBounds.Height - 6
+                    e.CellBounds.X + 15,
+                    e.CellBounds.Y + 4,
+                    e.CellBounds.Width - 30,
+                    e.CellBounds.Height - 8
                 );
 
-                using var brushBoton = new SolidBrush(Color.FromArgb(43, 50, 68));
-                e.Graphics.FillRectangle(brushBoton, rectBoton);
+                using var path = new GraphicsPath();
+                int radius = 10;
+                path.AddArc(rectBoton.X, rectBoton.Y, radius, radius, 180, 90);
+                path.AddArc(rectBoton.Right - radius, rectBoton.Y, radius, radius, 270, 90);
+                path.AddArc(rectBoton.Right - radius, rectBoton.Bottom - radius, radius, radius, 0, 90);
+                path.AddArc(rectBoton.X, rectBoton.Bottom - radius, radius, radius, 90, 90);
+                path.CloseFigure();
+
+                bool isHovered = rectBoton.Contains(dataGridViewVentas.PointToClient(Cursor.Position));
+                Color colorBoton = isHovered ? Color.FromArgb(136, 152, 194) : Color.FromArgb(109, 124, 163);
+
+                using var brushBoton = new SolidBrush(colorBoton);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.FillPath(brushBoton, path);
 
                 TextRenderer.DrawText(
                     e.Graphics,
@@ -382,19 +463,20 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarMetricasVendedor()
+        private void CargarMetricasVendedor(DateTime? desde, DateTime? hasta, string tipo, string metodo)
         {
             try
             {
-                EReporteKpiHistorico kpi = _lReporte.ObtenerKpisHistoricos(IdUsuarioActual);
+                EReporteKpiHistorico kpi = _lReporte.ObtenerKpisHistoricos(IdUsuarioActual, desde, hasta, tipo, metodo);
 
                 lblVentas.Text = FormatearMonedaCompacta(kpi.TotalFacturado);
                 lblNOrdenes.Text = kpi.CantidadVentas.ToString("N0", cultura);
-                lblClientes.Text = kpi.ClientesUnicos.ToString("N0", cultura);
-                lblVentasCliente.Text = FormatearMonedaCompacta(kpi.PromedioPorCliente);
+
+                // CORRECCIÓN: Actualización al nuevo KPI
+                lblVentasCliente.Text = kpi.ClientesAtendidos.ToString("N0", cultura);
 
                 _toolTip.SetToolTip(lblVentas, $"Total exacto: $ {kpi.TotalFacturado.ToString("N2", cultura)}");
-                _toolTip.SetToolTip(lblVentasCliente, $"Promedio exacto: $ {kpi.PromedioPorCliente.ToString("N2", cultura)}");
+                _toolTip.SetToolTip(lblVentasCliente, $"Cantidad de clientes diferentes que realizaron una compra.");
             }
             catch (Exception ex)
             {
@@ -410,17 +492,20 @@ namespace PROYECTO1.CapaPresentacion
             {
                 EReporteKpiMes kpi = _lReporte.ObtenerKpisMes(IdUsuarioActual);
 
+                decimal ticketActual = kpi.OrdenesActual > 0 ? kpi.VentasActual / kpi.OrdenesActual : 0m;
+                decimal ticketAnterior = kpi.OrdenesAnterior > 0 ? kpi.VentasAnterior / kpi.OrdenesAnterior : 0m;
+
                 lblVenMes.Text = FormatearMonedaCompacta(kpi.VentasActual);
                 lblOrdenesMes.Text = kpi.OrdenesActual.ToString("N0", cultura);
-                lblClientesMes.Text = kpi.ClientesActual.ToString("N0", cultura);
+                lblTicketMes.Text = FormatearMonedaCompacta(ticketActual);
 
                 AsignarComparativa(lblVenMesComp, kpi.VentasActual, kpi.VentasAnterior, esMoneda: true);
                 AsignarComparativa(lblOrdenesMesComp, kpi.OrdenesActual, kpi.OrdenesAnterior, esMoneda: false);
-                AsignarComparativa(lblClientesMesComp, kpi.ClientesActual, kpi.ClientesAnterior, esMoneda: false);
+                AsignarComparativa(lblTicketMesComp, ticketActual, ticketAnterior, esMoneda: true);
 
                 _toolTip.SetToolTip(lblVenMes, $"Este mes (al día {ahora.Day}): $ {kpi.VentasActual:N2}\nMes anterior (mismo día): $ {kpi.VentasAnterior:N2}");
                 _toolTip.SetToolTip(lblOrdenesMes, $"Este mes: {kpi.OrdenesActual:N0}\nMes anterior: {kpi.OrdenesAnterior:N0}");
-                _toolTip.SetToolTip(lblClientesMes, $"Este mes: {kpi.ClientesActual:N0}\nMes anterior: {kpi.ClientesAnterior:N0}");
+                _toolTip.SetToolTip(lblTicketMes, $"Ticket promedio este mes: $ {ticketActual:N2}\nMes anterior: $ {ticketAnterior:N2}");
             }
             catch (Exception ex)
             {
@@ -436,7 +521,7 @@ namespace PROYECTO1.CapaPresentacion
 
             if (anterior == 0)
             {
-                lblComp.Text = actual > 0 ? $"Ant: {textoAnt}  ▲ +100%" : $"Ant: {textoAnt}  0.0%";
+                lblComp.Text = actual > 0 ? $"Ant: {textoAnt}  Nuevo" : $"Ant: {textoAnt}  0.0%";
                 lblComp.ForeColor = actual > 0 ? Color.FromArgb(46, 204, 113) : Color.FromArgb(160, 174, 192);
                 return;
             }
@@ -460,13 +545,13 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarGraficoHistorico()
+        private void CargarGraficoHistorico(DateTime? desde, DateTime? hasta, string tipo, string metodo)
         {
             datosHistoricos.Clear();
 
             try
             {
-                datosHistoricos.AddRange(_lReporte.ObtenerGraficoHistorico(IdUsuarioActual));
+                datosHistoricos.AddRange(_lReporte.ObtenerGraficoHistorico(IdUsuarioActual, desde, hasta, tipo, metodo));
                 panelGraficoLineasDefault.Invalidate();
             }
             catch (Exception ex)
@@ -486,7 +571,7 @@ namespace PROYECTO1.CapaPresentacion
             if (datosHistoricos.Count < 2)
             {
                 using var fontVacio = new Font("Segoe UI", 9.5F, FontStyle.Italic);
-                g.DrawString("No hay suficientes datos históricos registrados.", fontVacio, Brushes.LightGray, 30, h / 2 - 10);
+                g.DrawString("No hay suficientes datos históricos registrados con los filtros actuales.", fontVacio, Brushes.LightGray, 30, h / 2 - 10);
                 return;
             }
 
@@ -548,13 +633,13 @@ namespace PROYECTO1.CapaPresentacion
             g.DrawLines(penLinea, puntos);
         }
 
-        private void CargarGraficoCategorias()
+        private void CargarGraficoCategorias(DateTime? desde, DateTime? hasta, string tipo, string metodo)
         {
             panelContenedorBarras.Controls.Clear();
 
             try
             {
-                DataTable dt = _lReporte.ObtenerTopCategorias(IdUsuarioActual);
+                DataTable dt = _lReporte.ObtenerTopCategorias(IdUsuarioActual, desde, hasta, tipo, metodo);
 
                 if (dt.Rows.Count == 0)
                 {

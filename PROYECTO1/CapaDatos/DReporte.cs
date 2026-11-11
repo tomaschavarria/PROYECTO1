@@ -10,33 +10,98 @@ namespace PROYECTO1.CapaDatos
 {
     public class DReporte
     {
-        public EReporteKpiHistorico ObtenerKpisHistoricos(int idUsuario)
+        // =======================================================================================
+        // HELPER PARA FILTROS DINÁMICOS DEL VENDEDOR Y GERENTE
+        // =======================================================================================
+        private void AgregarFiltrosVenta(SqlCommand cmd, ref string sql, DateTime? desde, DateTime? hasta, string tipoCliente, string metodoPago)
+        {
+            if (desde.HasValue)
+            {
+                sql += " AND v.fecha >= @desde";
+                cmd.Parameters.AddWithValue("@desde", desde.Value.Date);
+            }
+            if (hasta.HasValue)
+            {
+                sql += " AND v.fecha < @hasta";
+                cmd.Parameters.AddWithValue("@hasta", hasta.Value.Date.AddDays(1));
+            }
+            if (!string.IsNullOrEmpty(tipoCliente) && tipoCliente != "Todos")
+            {
+                if (tipoCliente == "Consumidor Final")
+                    sql += " AND v.id_cliente IS NULL";
+                else if (tipoCliente == "Registrados")
+                    sql += " AND v.id_cliente IS NOT NULL";
+            }
+            if (!string.IsNullOrEmpty(metodoPago) && metodoPago != "Todos")
+            {
+                sql += " AND mp.nombre = @metodoPago";
+                cmd.Parameters.AddWithValue("@metodoPago", metodoPago);
+            }
+        }
+
+        private void AgregarFiltrosGerente(SqlCommand cmd, ref string sql, DateTime? desde, DateTime? hasta, string tipoCliente, string metodoPago, string aliasVenta = "v")
+        {
+            if (desde.HasValue)
+            {
+                sql += $" AND {aliasVenta}.fecha >= @desde";
+                if (!cmd.Parameters.Contains("@desde")) cmd.Parameters.AddWithValue("@desde", desde.Value.Date);
+            }
+            if (hasta.HasValue)
+            {
+                sql += $" AND {aliasVenta}.fecha < @hasta";
+                if (!cmd.Parameters.Contains("@hasta")) cmd.Parameters.AddWithValue("@hasta", hasta.Value.Date.AddDays(1));
+            }
+            if (tipoCliente == "Consumidor Final")
+            {
+                sql += $" AND {aliasVenta}.id_cliente IS NULL";
+            }
+            else if (tipoCliente == "Registrados")
+            {
+                sql += $" AND {aliasVenta}.id_cliente IS NOT NULL";
+            }
+            if (metodoPago != "Todos")
+            {
+                sql += $" AND EXISTS (SELECT 1 FROM dbo.metodo_pago mp WHERE mp.id_metodo_pago = {aliasVenta}.id_metodo_pago AND mp.nombre = @metodoPago)";
+                if (!cmd.Parameters.Contains("@metodoPago")) cmd.Parameters.AddWithValue("@metodoPago", metodoPago);
+            }
+        }
+
+        // =======================================================================================
+        // REPORTES DEL VENDEDOR
+        // =======================================================================================
+
+        public EReporteKpiHistorico ObtenerKpisHistoricos(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var kpi = new EReporteKpiHistorico();
-            const string sql = @"
+
+            // CORRECCIÓN: Se reemplaza el Ticket Promedio por el conteo de clientes únicos (Clientes Atendidos).
+            // Para Consumidor Final (id_cliente NULL) se asume como 1 cliente global para no sobredimensionar.
+            string sql = @"
             SELECT 
-                ISNULL(SUM(total), 0) AS TotalFacturado,
-                COUNT(id_venta) AS CantidadVentas,
-                COUNT(DISTINCT id_cliente) AS ClientesUnicos,
-                CASE 
-                    WHEN COUNT(DISTINCT id_cliente) = 0 THEN 0
-                    ELSE ISNULL(SUM(total), 0) / COUNT(DISTINCT id_cliente)
-                END AS PromedioPorCliente
-            FROM dbo.venta
-            WHERE id_usuario = @idUsuario;";
+                ISNULL(SUM(v.total), 0) AS TotalFacturado,
+                COUNT(v.id_venta) AS CantidadVentas,
+                COUNT(CASE WHEN v.id_cliente IS NULL THEN 1 END) AS VentasConsumidorFinal,
+                COUNT(DISTINCT v.id_cliente) + CASE WHEN MAX(CASE WHEN v.id_cliente IS NULL THEN 1 ELSE 0 END) = 1 THEN 1 ELSE 0 END AS ClientesAtendidos
+            FROM dbo.venta v
+            INNER JOIN dbo.metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago
+            WHERE v.id_usuario = @idUsuario";
 
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            using var cmd = new SqlCommand();
+            cmd.Connection = cn;
             cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
-            cn.Open();
 
+            AgregarFiltrosVenta(cmd, ref sql, desde, hasta, tipoCliente, metodoPago);
+            cmd.CommandText = sql + ";";
+
+            cn.Open();
             using var dr = cmd.ExecuteReader();
             if (dr.Read())
             {
                 kpi.TotalFacturado = Convert.ToDecimal(dr["TotalFacturado"]);
                 kpi.CantidadVentas = Convert.ToInt32(dr["CantidadVentas"]);
-                kpi.ClientesUnicos = Convert.ToInt32(dr["ClientesUnicos"]);
-                kpi.PromedioPorCliente = Convert.ToDecimal(dr["PromedioPorCliente"]);
+                kpi.VentasConsumidorFinal = Convert.ToInt32(dr["VentasConsumidorFinal"]);
+                kpi.ClientesAtendidos = Convert.ToInt32(dr["ClientesAtendidos"]);
             }
 
             return kpi;
@@ -51,8 +116,8 @@ namespace PROYECTO1.CapaDatos
                 ISNULL(SUM(CASE WHEN fecha >= @inicioAnterior AND fecha <= @finAnterior THEN total ELSE 0 END), 0) AS VentasAnterior,
                 COUNT(DISTINCT CASE WHEN fecha >= @inicioActual AND fecha <= @finActual THEN id_venta END) AS OrdenesActual,
                 COUNT(DISTINCT CASE WHEN fecha >= @inicioAnterior AND fecha <= @finAnterior THEN id_venta END) AS OrdenesAnterior,
-                COUNT(DISTINCT CASE WHEN fecha >= @inicioActual AND fecha <= @finActual THEN id_cliente END) AS ClientesActual,
-                COUNT(DISTINCT CASE WHEN fecha >= @inicioAnterior AND fecha <= @finAnterior THEN id_cliente END) AS ClientesAnterior
+                COUNT(CASE WHEN fecha >= @inicioActual AND fecha <= @finActual AND id_cliente IS NULL THEN 1 END) AS ConsumidorFinalActual,
+                COUNT(CASE WHEN fecha >= @inicioAnterior AND fecha <= @finAnterior AND id_cliente IS NULL THEN 1 END) AS ConsumidorFinalAnterior
             FROM dbo.venta
             WHERE id_usuario = @idUsuario
               AND ((fecha >= @inicioActual AND fecha <= @finActual) OR (fecha >= @inicioAnterior AND fecha <= @finAnterior));";
@@ -73,28 +138,36 @@ namespace PROYECTO1.CapaDatos
                 kpi.VentasAnterior = Convert.ToDecimal(dr["VentasAnterior"]);
                 kpi.OrdenesActual = Convert.ToInt32(dr["OrdenesActual"]);
                 kpi.OrdenesAnterior = Convert.ToInt32(dr["OrdenesAnterior"]);
-                kpi.ClientesActual = Convert.ToInt32(dr["ClientesActual"]);
-                kpi.ClientesAnterior = Convert.ToInt32(dr["ClientesAnterior"]);
+                kpi.ConsumidorFinalActual = Convert.ToInt32(dr["ConsumidorFinalActual"]);
+                kpi.ConsumidorFinalAnterior = Convert.ToInt32(dr["ConsumidorFinalAnterior"]);
             }
 
             return kpi;
         }
 
-        public Dictionary<DateTime, decimal> ObtenerVentasMensualesAgrupadas(int idUsuario)
+        public Dictionary<DateTime, decimal> ObtenerVentasMensualesAgrupadas(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var datos = new Dictionary<DateTime, decimal>();
-            const string sql = @"
+            string sql = @"
             SELECT 
-                DATEFROMPARTS(YEAR(fecha), MONTH(fecha), 1) AS Periodo,
-                ISNULL(SUM(total), 0) AS TotalMes
-            FROM dbo.venta
-            WHERE id_usuario = @idUsuario
-            GROUP BY DATEFROMPARTS(YEAR(fecha), MONTH(fecha), 1)
-            ORDER BY Periodo ASC;";
+                DATEFROMPARTS(YEAR(v.fecha), MONTH(v.fecha), 1) AS Periodo,
+                ISNULL(SUM(v.total), 0) AS TotalMes
+            FROM dbo.venta v
+            INNER JOIN dbo.metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago
+            WHERE v.id_usuario = @idUsuario";
 
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            using var cmd = new SqlCommand();
+            cmd.Connection = cn;
             cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
+
+            AgregarFiltrosVenta(cmd, ref sql, desde, hasta, tipoCliente, metodoPago);
+
+            sql += @" 
+            GROUP BY DATEFROMPARTS(YEAR(v.fecha), MONTH(v.fecha), 1)
+            ORDER BY Periodo ASC;";
+
+            cmd.CommandText = sql;
             cn.Open();
 
             using var dr = cmd.ExecuteReader();
@@ -108,10 +181,10 @@ namespace PROYECTO1.CapaDatos
             return datos;
         }
 
-        public DataTable ObtenerTopCategorias(int idUsuario)
+        public DataTable ObtenerTopCategorias(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
+            string sql = @"
             SELECT TOP 6
                 ISNULL(c.nombre, 'Sin Categoría') AS Categoria,
                 COUNT(DISTINCT v.id_venta) AS CantidadOrdenes
@@ -119,47 +192,66 @@ namespace PROYECTO1.CapaDatos
             INNER JOIN dbo.detalle_venta dv ON v.id_venta = dv.id_venta
             INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
             INNER JOIN dbo.categoria c ON p.id_categoria = c.id_categoria
-            WHERE v.id_usuario = @idUsuario
+            INNER JOIN dbo.metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago
+            WHERE v.id_usuario = @idUsuario";
+
+            using var cn = BaseDatos.GetConnection();
+            using var cmd = new SqlCommand();
+            cmd.Connection = cn;
+            cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
+
+            AgregarFiltrosVenta(cmd, ref sql, desde, hasta, tipoCliente, metodoPago);
+
+            sql += @" 
             GROUP BY c.nombre
             ORDER BY CantidadOrdenes DESC;";
 
-            using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
+            cmd.CommandText = sql;
             using var da = new SqlDataAdapter(cmd);
             da.Fill(dt);
 
             return dt;
         }
 
-        public DataTable ListarHistorialVentas(int idUsuario)
+        public DataTable ListarHistorialVentas(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
+            string sql = @"
             SELECT 
                 v.id_venta AS NroVenta,
                 CONVERT(VARCHAR(16), v.fecha, 120) AS Fecha,
-                ISNULL(c.nombre + ' ' + c.apellido, 'Consumidor Final') AS Cliente,
-                ISNULL(CAST(c.DNI_cliente AS VARCHAR), '-') AS DNI,
+                ISNULL(cli.nombre + ' ' + cli.apellido, 'Consumidor Final') AS Cliente,
+                ISNULL(CAST(cli.DNI_cliente AS VARCHAR), '00000000') AS DNI,
                 CASE 
                     WHEN mp.nombre COLLATE Latin1_General_CI_AI = 'Credito' AND v.cuotas > 1 THEN CONCAT(mp.nombre, ' (', v.cuotas, ' ctas)')
                     ELSE mp.nombre
                 END AS MetodoPago,
-                v.total AS Total
+                v.total AS Total,
+                CASE WHEN v.id_cliente IS NULL THEN 1 ELSE 0 END AS EsConsumidorFinal
             FROM dbo.venta v
-            LEFT JOIN dbo.cliente c ON v.id_cliente = c.id_cliente
+            LEFT JOIN dbo.cliente cli ON v.id_cliente = cli.id_cliente -- ¡AQUÍ ESTABA EL ERROR CORREGIDO!
             INNER JOIN dbo.metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago
-            WHERE v.id_usuario = @idUsuario
-            ORDER BY v.fecha DESC;";
+            WHERE v.id_usuario = @idUsuario";
 
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            using var cmd = new SqlCommand();
+            cmd.Connection = cn;
             cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
+
+            AgregarFiltrosVenta(cmd, ref sql, desde, hasta, tipoCliente, metodoPago);
+
+            sql += " ORDER BY v.fecha DESC;";
+            cmd.CommandText = sql;
+
             using var da = new SqlDataAdapter(cmd);
             da.Fill(dt);
 
             return dt;
         }
+
+        // =======================================================================================
+        // COMPROBANTES Y ADMIN
+        // =======================================================================================
 
         public DataTable ObtenerCabeceraComprobante(int idVenta)
         {
@@ -168,7 +260,7 @@ namespace PROYECTO1.CapaDatos
             SELECT 
                 v.fecha, mp.nombre AS metodo_pago, v.cuotas, v.recargo, v.total,
                 ISNULL(c.nombre + ' ' + c.apellido, 'Consumidor Final') AS Cliente,
-                ISNULL(CAST(c.DNI_cliente AS VARCHAR), '-') AS DNI,
+                ISNULL(CAST(c.DNI_cliente AS VARCHAR), '00000000') AS DNI,
                 u.nombre + ' ' + u.apellido AS Vendedor
             FROM dbo.venta v
             LEFT JOIN dbo.cliente c ON v.id_cliente = c.id_cliente
@@ -286,7 +378,8 @@ namespace PROYECTO1.CapaDatos
             const string sql = @"
             SELECT TOP 25 
                 id_producto, 
-                nombre AS Nombre, 
+                nombre AS Nombre,
+                ISNULL(talla, 'Único') AS Talle,
                 ISNULL(stock, 0) AS Stock
             FROM dbo.producto
             WHERE activo = 1 
@@ -315,7 +408,8 @@ namespace PROYECTO1.CapaDatos
                     WHEN mp.nombre COLLATE Latin1_General_CI_AI = 'Credito' AND v.cuotas > 1 THEN CONCAT(mp.nombre, ' (', v.cuotas, ' ctas)')
                     ELSE mp.nombre
                 END AS MetodoPago,
-                v.total AS Total
+                v.total AS Total,
+                CASE WHEN v.id_cliente IS NULL THEN 1 ELSE 0 END AS EsConsumidorFinal
             FROM dbo.venta v
             LEFT JOIN dbo.cliente c ON v.id_cliente = c.id_cliente
             LEFT JOIN dbo.usuario u ON v.id_usuario = u.id_usuario
@@ -398,409 +492,468 @@ namespace PROYECTO1.CapaDatos
             return dt;
         }
 
-        public EReporteKpiHistoricoGerente ObtenerKpisHistoricosGerente()
+        // =======================================================================================
+        // REPORTES DEL GERENTE
+        // =======================================================================================
+
+        public EReporteKpiHistoricoGerente ObtenerKpisHistoricosGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var kpi = new EReporteKpiHistoricoGerente();
-            const string sql = @"
-            SELECT 
-                (SELECT ISNULL(SUM(total), 0) FROM dbo.venta) AS Ingresos,
-                (SELECT COUNT(id_venta) FROM dbo.venta) AS Ordenes,
-                (SELECT ISNULL(SUM(dv.cantidad * (ISNULL(dv.precio_unitario, 0) - ISNULL(p.precio_costo, 0))), 0)
-                 FROM dbo.detalle_venta dv
-                 INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto) AS Ganancias;";
-
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            using var cmd = new SqlCommand();
+
+            string sqlFiltros = "";
+            AgregarFiltrosGerente(cmd, ref sqlFiltros, desde, hasta, tipoCliente, metodoPago, "v");
+
+            string sql = $@"
+                SELECT 
+                    (SELECT ISNULL(SUM(v.total), 0) FROM dbo.venta v WHERE 1=1 {sqlFiltros}) AS Ingresos,
+                    (SELECT COUNT(v.id_venta) FROM dbo.venta v WHERE 1=1 {sqlFiltros}) AS Ordenes,
+                    (SELECT ISNULL(SUM(dv.cantidad * (ISNULL(dv.precio_unitario, 0) - ISNULL(p.precio_costo, 0))), 0)
+                     FROM dbo.detalle_venta dv
+                     INNER JOIN dbo.venta v ON dv.id_venta = v.id_venta
+                     INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
+                     WHERE 1=1 {sqlFiltros}) AS Ganancias;";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
             cn.Open();
 
             using var dr = cmd.ExecuteReader();
             if (dr.Read())
             {
                 kpi.Ingresos = Convert.ToDecimal(dr["Ingresos"]);
-                kpi.Ordenes = Convert.ToInt32(dr["Ordenes"]);
                 kpi.Ganancias = Convert.ToDecimal(dr["Ganancias"]);
-                kpi.TicketPromedio = kpi.Ordenes > 0 ? kpi.Ingresos / kpi.Ordenes : 0m;
+                kpi.Ordenes = Convert.ToInt32(dr["Ordenes"]);
+                kpi.TicketPromedio = kpi.Ordenes > 0 ? kpi.Ingresos / kpi.Ordenes : 0;
             }
-
             return kpi;
         }
 
         public EReporteKpiMesGerente ObtenerKpisMesGerente(DateTime inicioActual, DateTime finActual, DateTime inicioAnterior, DateTime finAnterior)
         {
             var kpi = new EReporteKpiMesGerente();
-            const string sql = @"
-            SELECT
-                (SELECT ISNULL(SUM(total), 0) FROM dbo.venta WHERE fecha >= @inicioActual AND fecha <= @finActual) AS VentasActual,
-                (SELECT ISNULL(SUM(total), 0) FROM dbo.venta WHERE fecha >= @inicioAnterior AND fecha <= @finAnterior) AS VentasAnterior,
-                (SELECT COUNT(id_venta) FROM dbo.venta WHERE fecha >= @inicioActual AND fecha <= @finActual) AS OrdenesActual,
-                (SELECT COUNT(id_venta) FROM dbo.venta WHERE fecha >= @inicioAnterior AND fecha <= @finAnterior) AS OrdenesAnterior,
-                (SELECT ISNULL(SUM(dv.cantidad * (ISNULL(dv.precio_unitario, 0) - ISNULL(p.precio_costo, 0))), 0)
-                 FROM dbo.detalle_venta dv
-                 INNER JOIN dbo.venta v ON dv.id_venta = v.id_venta
-                 INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
-                 WHERE v.fecha >= @inicioActual AND v.fecha <= @finActual) AS GananciasActual,
-                (SELECT ISNULL(SUM(dv.cantidad * (ISNULL(dv.precio_unitario, 0) - ISNULL(p.precio_costo, 0))), 0)
-                 FROM dbo.detalle_venta dv
-                 INNER JOIN dbo.venta v ON dv.id_venta = v.id_venta
-                 INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
-                 WHERE v.fecha >= @inicioAnterior AND v.fecha <= @finAnterior) AS GananciasAnterior,
-                (SELECT ISNULL(SUM(dv.cantidad), 0)
-                 FROM dbo.detalle_venta dv
-                 INNER JOIN dbo.venta v ON dv.id_venta = v.id_venta
-                 WHERE v.fecha >= @inicioActual AND v.fecha <= @finActual) AS ProdVendidosActual,
-                (SELECT ISNULL(SUM(dv.cantidad), 0)
-                 FROM dbo.detalle_venta dv
-                 INNER JOIN dbo.venta v ON dv.id_venta = v.id_venta
-                 WHERE v.fecha >= @inicioAnterior AND v.fecha <= @finAnterior) AS ProdVendidosAnterior;";
-
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@inicioActual", inicioActual);
-            cmd.Parameters.AddWithValue("@finActual", finActual);
-            cmd.Parameters.AddWithValue("@inicioAnterior", inicioAnterior);
-            cmd.Parameters.AddWithValue("@finAnterior", finAnterior);
             cn.Open();
 
-            using var dr = cmd.ExecuteReader();
-            if (dr.Read())
+            string sqlBase = @"
+                SELECT 
+                    ISNULL(SUM(v.total), 0) AS Ventas,
+                    COUNT(v.id_venta) AS Ordenes,
+                    (SELECT ISNULL(SUM(dv.cantidad * (ISNULL(dv.precio_unitario, 0) - ISNULL(p.precio_costo, 0))), 0)
+                     FROM dbo.detalle_venta dv
+                     INNER JOIN dbo.venta v2 ON dv.id_venta = v2.id_venta
+                     INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
+                     WHERE v2.fecha >= @ini AND v2.fecha <= @fin) AS Ganancias,
+                    ISNULL((SELECT SUM(dv.cantidad) FROM dbo.detalle_venta dv 
+                            INNER JOIN dbo.venta v2 ON dv.id_venta = v2.id_venta 
+                            WHERE v2.fecha >= @ini AND v2.fecha <= @fin), 0) AS ProductosVendidos
+                FROM dbo.venta v
+                WHERE v.fecha >= @ini AND v.fecha <= @fin";
+
+            using (var cmdA = new SqlCommand(sqlBase, cn))
             {
-                kpi.VentasActual = Convert.ToDecimal(dr["VentasActual"]);
-                kpi.VentasAnterior = Convert.ToDecimal(dr["VentasAnterior"]);
-                kpi.OrdenesActual = Convert.ToInt32(dr["OrdenesActual"]);
-                kpi.OrdenesAnterior = Convert.ToInt32(dr["OrdenesAnterior"]);
-                kpi.GananciasActual = Convert.ToDecimal(dr["GananciasActual"]);
-                kpi.GananciasAnterior = Convert.ToDecimal(dr["GananciasAnterior"]);
-                kpi.ProdVendidosActual = Convert.ToInt32(dr["ProdVendidosActual"]);
-                kpi.ProdVendidosAnterior = Convert.ToInt32(dr["ProdVendidosAnterior"]);
+                cmdA.Parameters.AddWithValue("@ini", inicioActual);
+                cmdA.Parameters.AddWithValue("@fin", finActual);
+                using var drA = cmdA.ExecuteReader();
+                if (drA.Read())
+                {
+                    kpi.VentasActual = Convert.ToDecimal(drA["Ventas"]);
+                    kpi.GananciasActual = Convert.ToDecimal(drA["Ganancias"]);
+                    kpi.OrdenesActual = Convert.ToInt32(drA["Ordenes"]);
+                    kpi.ProdVendidosActual = Convert.ToInt32(drA["ProductosVendidos"]);
+                }
             }
 
+            using (var cmdB = new SqlCommand(sqlBase, cn))
+            {
+                cmdB.Parameters.AddWithValue("@ini", inicioAnterior);
+                cmdB.Parameters.AddWithValue("@fin", finAnterior);
+                using var drB = cmdB.ExecuteReader();
+                if (drB.Read())
+                {
+                    kpi.VentasAnterior = Convert.ToDecimal(drB["Ventas"]);
+                    kpi.GananciasAnterior = Convert.ToDecimal(drB["Ganancias"]);
+                    kpi.OrdenesAnterior = Convert.ToInt32(drB["Ordenes"]);
+                    kpi.ProdVendidosAnterior = Convert.ToInt32(drB["ProductosVendidos"]);
+                }
+            }
             return kpi;
         }
 
-        public Dictionary<DateTime, decimal> ObtenerVentasMensualesAgrupadasGerente()
+        public Dictionary<DateTime, decimal> ObtenerVentasMensualesAgrupadasGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            var datos = new Dictionary<DateTime, decimal>();
-            const string sql = @"
-            SELECT 
-                DATEFROMPARTS(YEAR(fecha), MONTH(fecha), 1) AS Periodo,
-                ISNULL(SUM(total), 0) AS TotalMes
-            FROM dbo.venta
-            GROUP BY DATEFROMPARTS(YEAR(fecha), MONTH(fecha), 1)
-            ORDER BY Periodo ASC;";
-
+            var dict = new Dictionary<DateTime, decimal>();
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            string sql = @"
+                SELECT 
+                    YEAR(v.fecha) AS Anio, 
+                    MONTH(v.fecha) AS Mes, 
+                    SUM(v.total) AS Total
+                FROM dbo.venta v
+                WHERE 1=1 ";
+
+            using var cmd = new SqlCommand();
+            AgregarFiltrosGerente(cmd, ref sql, desde, hasta, tipoCliente, metodoPago, "v");
+            sql += " GROUP BY YEAR(v.fecha), MONTH(v.fecha)";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
             cn.Open();
 
             using var dr = cmd.ExecuteReader();
             while (dr.Read())
             {
-                DateTime periodo = Convert.ToDateTime(dr["Periodo"]);
-                decimal total = Convert.ToDecimal(dr["TotalMes"]);
-                datos[periodo] = total;
+                int anio = Convert.ToInt32(dr["Anio"]);
+                int mes = Convert.ToInt32(dr["Mes"]);
+                decimal total = Convert.ToDecimal(dr["Total"]);
+                dict.Add(new DateTime(anio, mes, 1), total);
             }
-
-            return datos;
+            return dict;
         }
 
-        public DataTable ObtenerTopCategoriasGerente()
+        public DataTable ObtenerTopCategoriasGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
-            SELECT TOP 6
-                ISNULL(c.nombre, 'Sin Categoría') AS Categoria,
-                COUNT(DISTINCT v.id_venta) AS CantidadOrdenes
-            FROM dbo.venta v
-            INNER JOIN dbo.detalle_venta dv ON v.id_venta = dv.id_venta
-            INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
-            INNER JOIN dbo.categoria c ON p.id_categoria = c.id_categoria
-            GROUP BY c.nombre
-            ORDER BY CantidadOrdenes DESC;";
-
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            string sql = @"
+                SELECT TOP 6
+                    c.nombre AS Categoria,
+                    COUNT(v.id_venta) AS CantidadOrdenes
+                FROM dbo.venta v
+                INNER JOIN dbo.detalle_venta dv ON v.id_venta = dv.id_venta
+                INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
+                INNER JOIN dbo.categoria c ON p.id_categoria = c.id_categoria
+                WHERE 1=1 ";
+
+            using var cmd = new SqlCommand();
+            AgregarFiltrosGerente(cmd, ref sql, desde, hasta, tipoCliente, metodoPago, "v");
+            sql += " GROUP BY c.nombre ORDER BY CantidadOrdenes DESC";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
             using var da = new SqlDataAdapter(cmd);
             da.Fill(dt);
-
             return dt;
         }
 
-        public DataTable ObtenerTop10ProductosGerente()
+        public DataTable ObtenerTop10ProductosGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
-            SELECT TOP 10
-                p.id_producto AS IdProducto,
-                p.nombre AS Nombre,
-                COUNT(DISTINCT v.id_venta) AS Ordenes,
-                ISNULL(SUM(dv.cantidad * dv.precio_unitario), 0) AS Ingresos
-            FROM dbo.detalle_venta dv
-            INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
-            INNER JOIN dbo.venta v ON dv.id_venta = v.id_venta
-            WHERE p.activo = 1
-            GROUP BY p.id_producto, p.nombre
-            ORDER BY Ingresos DESC, Ordenes DESC;";
-
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            string sql = @"
+                SELECT TOP 10
+                    p.id_producto AS IdProducto,
+                    p.nombre AS Nombre,
+                    SUM(dv.cantidad) AS Ordenes,
+                    SUM(dv.subtotal) AS Ingresos
+                FROM dbo.venta v
+                INNER JOIN dbo.detalle_venta dv ON v.id_venta = dv.id_venta
+                INNER JOIN dbo.producto p ON dv.id_producto = p.id_producto
+                WHERE 1=1 ";
+
+            using var cmd = new SqlCommand();
+            AgregarFiltrosGerente(cmd, ref sql, desde, hasta, tipoCliente, metodoPago, "v");
+            sql += " GROUP BY p.id_producto, p.nombre ORDER BY Ordenes DESC";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
             using var da = new SqlDataAdapter(cmd);
             da.Fill(dt);
-
             return dt;
         }
 
-        public EReporteKpiGerenteClientes ObtenerKpisGerenteClientes(DateTime inicioMes, DateTime finMes)
+        public EReporteKpiGerenteClientes ObtenerKpisGerenteClientes(DateTime inicioMes, DateTime finMes, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var kpi = new EReporteKpiGerenteClientes();
             using var cn = BaseDatos.GetConnection();
+            cn.Open();
 
-            const string sqlKpis = @"
-            SELECT 
-                (SELECT COUNT(*) FROM dbo.cliente WHERE activo = 1) AS ClientesActivos,
-                (SELECT CASE WHEN COUNT(DISTINCT v.id_cliente) = 0 THEN 0 
-                             ELSE ISNULL(SUM(v.total), 0) / COUNT(DISTINCT v.id_cliente) END 
-                 FROM dbo.venta v WHERE v.id_cliente IS NOT NULL) AS VentasPorCliente,
-                (SELECT COUNT(*) 
-                 FROM (SELECT id_cliente FROM dbo.venta WHERE id_cliente IS NOT NULL GROUP BY id_cliente HAVING COUNT(id_venta) > 1) AS R) AS ClientesRecurrentes;";
+            using var cmdGlobal = new SqlCommand();
+            string sqlFiltrosV = "";
+            AgregarFiltrosGerente(cmdGlobal, ref sqlFiltrosV, desde, hasta, tipoCliente, metodoPago, "v");
+            string sqlFiltrosV2 = sqlFiltrosV.Replace("v.", "v2.");
 
-            using (var cmd = new SqlCommand(sqlKpis, cn))
+            string sqlGlobal = $@"
+                SELECT 
+                    COUNT(DISTINCT v.id_cliente) AS ClientesActivos,
+                    ISNULL(SUM(v.total), 0) AS TotalIngresos,
+                    (SELECT COUNT(1) FROM (
+                        SELECT id_cliente FROM dbo.venta v2 WHERE v2.id_cliente IS NOT NULL {sqlFiltrosV2} GROUP BY id_cliente HAVING COUNT(id_venta) > 1
+                    ) AS Recurrentes) AS ClientesRecurrentes
+                FROM dbo.venta v
+                WHERE v.id_cliente IS NOT NULL {sqlFiltrosV}";
+
+            cmdGlobal.CommandText = sqlGlobal;
+            cmdGlobal.Connection = cn;
+
+            using (var dr = cmdGlobal.ExecuteReader())
             {
-                cn.Open();
-                using var dr = cmd.ExecuteReader();
                 if (dr.Read())
                 {
                     kpi.ClientesActivos = Convert.ToInt32(dr["ClientesActivos"]);
-                    kpi.VentasPorCliente = Convert.ToDecimal(dr["VentasPorCliente"]);
+                    decimal totalIngresos = Convert.ToDecimal(dr["TotalIngresos"]);
                     kpi.ClientesRecurrentes = Convert.ToInt32(dr["ClientesRecurrentes"]);
+                    kpi.VentasPorCliente = kpi.ClientesActivos > 0 ? totalIngresos / kpi.ClientesActivos : 0;
                 }
             }
 
-            const string sqlClienteMes = @"
-            SELECT TOP 1
-                ISNULL(c.nombre + ' ' + c.apellido, 'Sin Cliente') AS Nombre,
-                ISNULL(SUM(v.total), 0) AS Ingresos,
-                COUNT(v.id_venta) AS Ordenes
-            FROM dbo.venta v
-            INNER JOIN dbo.cliente c ON v.id_cliente = c.id_cliente
-            WHERE v.fecha >= @inicioMes AND v.fecha <= @finMes
-            GROUP BY c.id_cliente, c.nombre, c.apellido
-            ORDER BY Ingresos DESC, Ordenes DESC;";
+            string sqlMes = @"
+                SELECT TOP 1
+                    ISNULL(c.nombre, 'Consumidor') + ' ' + ISNULL(c.apellido, 'Final') AS ClienteMesNombre,
+                    COUNT(v.id_venta) AS ClienteMesOrdenes,
+                    SUM(v.total) AS ClienteMesIngresos
+                FROM dbo.venta v
+                LEFT JOIN dbo.cliente c ON v.id_cliente = c.id_cliente
+                WHERE v.fecha >= @ini AND v.fecha <= @fin AND v.id_cliente IS NOT NULL
+                GROUP BY c.id_cliente, c.nombre, c.apellido
+                ORDER BY ClienteMesIngresos DESC";
 
-            using (var cmdMes = new SqlCommand(sqlClienteMes, cn))
+            using var cmdMes = new SqlCommand(sqlMes, cn);
+            cmdMes.Parameters.AddWithValue("@ini", inicioMes);
+            cmdMes.Parameters.AddWithValue("@fin", finMes);
+
+            using (var dr = cmdMes.ExecuteReader())
             {
-                cmdMes.Parameters.AddWithValue("@inicioMes", inicioMes);
-                cmdMes.Parameters.AddWithValue("@finMes", finMes);
-
-                using var drMes = cmdMes.ExecuteReader();
-                if (drMes.Read())
+                if (dr.Read())
                 {
-                    kpi.ClienteMesNombre = drMes["Nombre"].ToString()!;
-                    kpi.ClienteMesIngresos = Convert.ToDecimal(drMes["Ingresos"]);
-                    kpi.ClienteMesOrdenes = Convert.ToInt32(drMes["Ordenes"]);
+                    kpi.ClienteMesNombre = dr["ClienteMesNombre"].ToString();
+                    kpi.ClienteMesOrdenes = Convert.ToInt32(dr["ClienteMesOrdenes"]);
+                    kpi.ClienteMesIngresos = Convert.ToDecimal(dr["ClienteMesIngresos"]);
+                }
+                else
+                {
+                    kpi.ClienteMesNombre = "N/A";
                 }
             }
 
             return kpi;
         }
 
-        public Dictionary<DateTime, int> ObtenerNuevosClientesMensuales()
+        public Dictionary<DateTime, int> ObtenerNuevosClientesMensuales(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            var datos = new Dictionary<DateTime, int>();
-            const string sql = @"
-            SELECT 
-                DATEFROMPARTS(YEAR(PrimeraCompra), MONTH(PrimeraCompra), 1) AS Periodo,
-                COUNT(*) AS Cantidad
-            FROM (
-                SELECT id_cliente, MIN(fecha) AS PrimeraCompra
-                FROM dbo.venta
-                WHERE id_cliente IS NOT NULL
-                GROUP BY id_cliente
-            ) AS PC
-            GROUP BY DATEFROMPARTS(YEAR(PrimeraCompra), MONTH(PrimeraCompra), 1)
-            ORDER BY Periodo ASC;";
-
+            var dict = new Dictionary<DateTime, int>();
             using var cn = BaseDatos.GetConnection();
-            using var cmd = new SqlCommand(sql, cn);
+            string sql = @"
+                SELECT YEAR(PrimerCompra) AS Anio, MONTH(PrimerCompra) AS Mes, COUNT(id_cliente) AS Cantidad
+                FROM (
+                    SELECT v.id_cliente, MIN(v.fecha) AS PrimerCompra
+                    FROM dbo.venta v
+                    WHERE v.id_cliente IS NOT NULL {0}
+                    GROUP BY v.id_cliente
+                ) AS Primeras
+                GROUP BY YEAR(PrimerCompra), MONTH(PrimerCompra)";
+
+            using var cmd = new SqlCommand();
+            string sqlFiltros = "";
+            AgregarFiltrosGerente(cmd, ref sqlFiltros, desde, hasta, tipoCliente, metodoPago, "v");
+            cmd.CommandText = string.Format(sql, sqlFiltros);
+            cmd.Connection = cn;
             cn.Open();
 
             using var dr = cmd.ExecuteReader();
             while (dr.Read())
             {
-                DateTime periodo = Convert.ToDateTime(dr["Periodo"]);
+                int anio = Convert.ToInt32(dr["Anio"]);
+                int mes = Convert.ToInt32(dr["Mes"]);
                 int cant = Convert.ToInt32(dr["Cantidad"]);
-                datos[periodo] = cant;
+                dict.Add(new DateTime(anio, mes, 1), cant);
             }
-
-            return datos;
+            return dict;
         }
 
-        public DataTable ObtenerMetodosPagoPorOrdenes()
+        public DataTable ObtenerMetodosPagoPorOrdenes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
-            SELECT 
-                ISNULL(mp.nombre, 'Sin Método') AS MetodoPago,
-                COUNT(v.id_venta) AS Cantidad
-            FROM dbo.venta v
-            INNER JOIN dbo.metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago
-            GROUP BY mp.nombre
-            ORDER BY Cantidad DESC;";
-
             using var cn = BaseDatos.GetConnection();
-            using var da = new SqlDataAdapter(sql, cn);
-            da.Fill(dt);
+            string sql = @"
+                SELECT 
+                    mp.nombre AS MetodoPago,
+                    COUNT(v.id_venta) AS Cantidad
+                FROM dbo.venta v
+                INNER JOIN dbo.metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago
+                WHERE 1=1 ";
 
+            using var cmd = new SqlCommand();
+            AgregarFiltrosGerente(cmd, ref sql, desde, hasta, tipoCliente, metodoPago, "v");
+            sql += " GROUP BY mp.nombre ORDER BY Cantidad DESC";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
+            using var da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
             return dt;
         }
 
-        public DataTable ObtenerTop10Clientes()
+        public DataTable ObtenerTop10Clientes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
-            SELECT TOP 10
-                c.DNI_cliente AS DNI,
-                ISNULL(c.nombre + ' ' + c.apellido, 'Consumidor Final') AS Cliente,
-                COUNT(v.id_venta) AS Ordenes,
-                ISNULL(SUM(v.total), 0) AS Ingresos
-            FROM dbo.venta v
-            INNER JOIN dbo.cliente c ON v.id_cliente = c.id_cliente
-            WHERE c.activo = 1
-            GROUP BY c.DNI_cliente, c.nombre, c.apellido
-            ORDER BY Ingresos DESC, Ordenes DESC;";
-
             using var cn = BaseDatos.GetConnection();
-            using var da = new SqlDataAdapter(sql, cn);
-            da.Fill(dt);
+            string sql = @"
+                SELECT TOP 10
+                    ISNULL(CAST(c.DNI_cliente AS VARCHAR), '00000000') AS DNI,
+                    ISNULL(c.nombre, 'Consumidor') + ' ' + ISNULL(c.apellido, 'Final') AS Cliente,
+                    COUNT(v.id_venta) AS Ordenes,
+                    SUM(v.total) AS Ingresos
+                FROM dbo.venta v
+                LEFT JOIN dbo.cliente c ON v.id_cliente = c.id_cliente
+                WHERE 1=1 ";
 
+            using var cmd = new SqlCommand();
+            AgregarFiltrosGerente(cmd, ref sql, desde, hasta, tipoCliente, metodoPago, "v");
+            sql += " GROUP BY c.id_cliente, c.DNI_cliente, c.nombre, c.apellido ORDER BY Ingresos DESC";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
+            using var da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
             return dt;
         }
 
-        public EReporteKpiGerenteVendedores ObtenerKpisGerenteVendedores(DateTime inicioMes, DateTime finMes)
+        public EReporteKpiGerenteVendedores ObtenerKpisGerenteVendedores(DateTime inicioMes, DateTime finMes, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var kpi = new EReporteKpiGerenteVendedores();
             using var cn = BaseDatos.GetConnection();
+            cn.Open();
 
-            const string sqlKpis = @"
-            SELECT 
-                (SELECT COUNT(*) 
-                 FROM dbo.usuario u 
-                 WHERE u.id_rol = 3 AND u.estado = 1) AS VendedoresActivos,
-                (SELECT ISNULL(SUM(v.total), 0) 
-                 FROM dbo.venta v 
-                 INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario 
-                 WHERE u.id_rol = 3) AS TotalIngresos,
-                (SELECT COUNT(v.id_venta) 
-                 FROM dbo.venta v 
-                 INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario 
-                 WHERE u.id_rol = 3) AS TotalOrdenes;";
+            using var cmdGlobal = new SqlCommand();
+            string sqlFiltrosV = "";
+            AgregarFiltrosGerente(cmdGlobal, ref sqlFiltrosV, desde, hasta, tipoCliente, metodoPago, "v");
 
-            using (var cmd = new SqlCommand(sqlKpis, cn))
+            string sqlGlobal = $@"
+                SELECT 
+                    (SELECT COUNT(*) FROM dbo.usuario u WHERE u.id_rol = 3 AND u.estado = 1) AS VendedoresActivos,
+                    (SELECT ISNULL(SUM(v.total), 0) FROM dbo.venta v INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario WHERE u.id_rol = 3 {sqlFiltrosV}) AS TotalIngresos,
+                    (SELECT COUNT(v.id_venta) FROM dbo.venta v INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario WHERE u.id_rol = 3 {sqlFiltrosV}) AS TotalOrdenes;";
+
+            cmdGlobal.CommandText = sqlGlobal;
+            cmdGlobal.Connection = cn;
+
+            using (var dr = cmdGlobal.ExecuteReader())
             {
-                cn.Open();
-                using var dr = cmd.ExecuteReader();
                 if (dr.Read())
                 {
                     kpi.VendedoresActivos = Convert.ToInt32(dr["VendedoresActivos"]);
                     decimal totalIngresos = Convert.ToDecimal(dr["TotalIngresos"]);
                     int totalOrdenes = Convert.ToInt32(dr["TotalOrdenes"]);
 
-                    if (kpi.VendedoresActivos > 0)
-                    {
-                        kpi.IngresoPromedio = totalIngresos / kpi.VendedoresActivos;
-                        kpi.OrdenesPromedio = (decimal)totalOrdenes / kpi.VendedoresActivos;
-                    }
+                    kpi.IngresoPromedio = kpi.VendedoresActivos > 0 ? totalIngresos / kpi.VendedoresActivos : 0;
+                    kpi.OrdenesPromedio = kpi.VendedoresActivos > 0 ? (decimal)totalOrdenes / kpi.VendedoresActivos : 0;
+                    kpi.TotalOrdenes = totalOrdenes;
                 }
             }
 
-            const string sqlVendedorMes = @"
-            SELECT TOP 1
-                ISNULL(u.nombre + ' ' + u.apellido, 'Sin Vendedor') AS Vendedor,
-                COUNT(v.id_venta) AS Ordenes,
-                ISNULL(SUM(v.total), 0) AS Ingresos
-            FROM dbo.venta v
-            INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario
-            WHERE v.fecha >= @inicioMes AND v.fecha <= @finMes AND u.id_rol = 3
-            GROUP BY u.id_usuario, u.nombre, u.apellido
-            ORDER BY Ingresos DESC, Ordenes DESC;";
+            string sqlMes = @"
+                SELECT TOP 1
+                    u.nombre + ' ' + u.apellido AS VendedorMesNombre,
+                    COUNT(v.id_venta) AS VendedorMesOrdenes,
+                    SUM(v.total) AS VendedorMesIngresos
+                FROM dbo.venta v
+                INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario
+                WHERE v.fecha >= @ini AND v.fecha <= @fin
+                GROUP BY u.id_usuario, u.nombre, u.apellido
+                ORDER BY VendedorMesIngresos DESC";
 
-            using (var cmdMes = new SqlCommand(sqlVendedorMes, cn))
+            using var cmdMes = new SqlCommand(sqlMes, cn);
+            cmdMes.Parameters.AddWithValue("@ini", inicioMes);
+            cmdMes.Parameters.AddWithValue("@fin", finMes);
+
+            using (var dr = cmdMes.ExecuteReader())
             {
-                cmdMes.Parameters.AddWithValue("@inicioMes", inicioMes);
-                cmdMes.Parameters.AddWithValue("@finMes", finMes);
-
-                using var drMes = cmdMes.ExecuteReader();
-                if (drMes.Read())
+                if (dr.Read())
                 {
-                    kpi.VendedorMesNombre = drMes["Vendedor"].ToString()!;
-                    kpi.VendedorMesOrdenes = Convert.ToInt32(drMes["Ordenes"]);
-                    kpi.VendedorMesIngresos = Convert.ToDecimal(drMes["Ingresos"]);
+                    kpi.VendedorMesNombre = dr["VendedorMesNombre"].ToString();
+                    kpi.VendedorMesOrdenes = Convert.ToInt32(dr["VendedorMesOrdenes"]);
+                    kpi.VendedorMesIngresos = Convert.ToDecimal(dr["VendedorMesIngresos"]);
+                }
+                else
+                {
+                    kpi.VendedorMesNombre = "N/A";
                 }
             }
 
             return kpi;
         }
 
-        public DataTable ObtenerVentasPorVendedorDonut()
+        public DataTable ObtenerVentasPorVendedorDonut(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
-            SELECT 
-                ISNULL(u.nombre + ' ' + u.apellido, 'Sin Asignar') AS Vendedor,
-                ISNULL(SUM(v.total), 0) AS TotalRecaudado
-            FROM dbo.venta v
-            INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario
-            WHERE u.id_rol = 3
-            GROUP BY u.id_usuario, u.nombre, u.apellido
-            ORDER BY TotalRecaudado DESC;";
-
             using var cn = BaseDatos.GetConnection();
-            using var da = new SqlDataAdapter(sql, cn);
-            da.Fill(dt);
+            string sql = @"
+                SELECT 
+                    ISNULL(u.nombre + ' ' + u.apellido, 'Sin Asignar') AS Vendedor,
+                    ISNULL(SUM(v.total), 0) AS TotalRecaudado
+                FROM dbo.venta v
+                INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario
+                WHERE u.id_rol = 3 ";
 
+            using var cmd = new SqlCommand();
+            AgregarFiltrosGerente(cmd, ref sql, desde, hasta, tipoCliente, metodoPago, "v");
+            sql += " GROUP BY u.id_usuario, u.nombre, u.apellido ORDER BY TotalRecaudado DESC";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
+            using var da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
             return dt;
         }
 
-        public DataTable ObtenerTop6VendedoresPorOrdenes()
+        public DataTable ObtenerTop6VendedoresPorOrdenes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
-            SELECT TOP 6
-                ISNULL(u.nombre + ' ' + u.apellido, 'Sin Asignar') AS Vendedor,
-                COUNT(v.id_venta) AS CantidadOrdenes
-            FROM dbo.venta v
-            INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario
-            WHERE u.id_rol = 3
-            GROUP BY u.id_usuario, u.nombre, u.apellido
-            ORDER BY CantidadOrdenes DESC;";
-
             using var cn = BaseDatos.GetConnection();
-            using var da = new SqlDataAdapter(sql, cn);
-            da.Fill(dt);
 
+            string sql = @"
+                SELECT TOP 6
+                    ISNULL(u.nombre + ' ' + u.apellido, 'Sin Asignar') AS Vendedor,
+                    ISNULL(SUM(dv.cantidad), 0) AS CantidadUnidades
+                FROM dbo.venta v
+                INNER JOIN dbo.detalle_venta dv ON v.id_venta = dv.id_venta
+                INNER JOIN dbo.usuario u ON v.id_usuario = u.id_usuario
+                WHERE u.id_rol = 3 ";
+
+            using var cmd = new SqlCommand();
+            AgregarFiltrosGerente(cmd, ref sql, desde, hasta, tipoCliente, metodoPago, "v");
+            sql += " GROUP BY u.id_usuario, u.nombre, u.apellido ORDER BY CantidadUnidades DESC";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
+            using var da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
             return dt;
         }
 
-        public DataTable ObtenerTablaRendimientoVendedores()
+        public DataTable ObtenerTablaRendimientoVendedores(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var dt = new DataTable();
-            const string sql = @"
-            SELECT 
-                CAST(u.DNI_usuario AS VARCHAR(20)) AS DNI,
-                ISNULL(u.nombre + ' ' + u.apellido, 'Sin Asignar') AS Vendedor,
-                COUNT(v.id_venta) AS Ordenes,
-                ISNULL(SUM(v.total), 0) AS Ingresos
-            FROM dbo.usuario u
-            INNER JOIN dbo.rol r ON u.id_rol = r.id_rol
-            LEFT JOIN dbo.venta v ON u.id_usuario = v.id_usuario
-            WHERE (r.nombre LIKE '%vendedor%' OR u.id_rol = 3)
-              AND u.estado = 1
-            GROUP BY u.id_usuario, u.DNI_usuario, u.nombre, u.apellido
-            ORDER BY Ingresos DESC, Ordenes DESC;";
-
             using var cn = BaseDatos.GetConnection();
-            using var da = new SqlDataAdapter(sql, cn);
-            da.Fill(dt);
 
+            string sql = @"
+                SELECT 
+                    CAST(u.DNI_usuario AS VARCHAR(20)) AS DNI,
+                    ISNULL(u.nombre + ' ' + u.apellido, 'Sin Asignar') AS Vendedor,
+                    COUNT(v.id_venta) AS Ordenes,
+                    ISNULL(SUM(v.total), 0) AS Ingresos
+                FROM dbo.usuario u
+                INNER JOIN dbo.rol r ON u.id_rol = r.id_rol
+                LEFT JOIN dbo.venta v ON u.id_usuario = v.id_usuario ";
+
+            using var cmd = new SqlCommand();
+            string sqlFiltros = "";
+            AgregarFiltrosGerente(cmd, ref sqlFiltros, desde, hasta, tipoCliente, metodoPago, "v");
+
+            sql += sqlFiltros;
+
+            sql += @"
+                WHERE (r.nombre LIKE '%vendedor%' OR u.id_rol = 3)
+                  AND u.estado = 1
+                GROUP BY u.id_usuario, u.DNI_usuario, u.nombre, u.apellido
+                ORDER BY Ingresos DESC, Ordenes DESC;";
+
+            cmd.CommandText = sql;
+            cmd.Connection = cn;
+            using var da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
             return dt;
         }
     }

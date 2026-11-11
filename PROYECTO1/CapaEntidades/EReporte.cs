@@ -4,8 +4,8 @@
     {
         public decimal TotalFacturado { get; set; }
         public int CantidadVentas { get; set; }
-        public int ClientesUnicos { get; set; }
-        public decimal PromedioPorCliente { get; set; }
+        public int VentasConsumidorFinal { get; set; }
+        public int ClientesAtendidos { get; set; } // <--- Propiedad reemplazada
     }
 
     public class EReporteKpiMes
@@ -14,8 +14,8 @@
         public decimal VentasAnterior { get; set; }
         public int OrdenesActual { get; set; }
         public int OrdenesAnterior { get; set; }
-        public int ClientesActual { get; set; }
-        public int ClientesAnterior { get; set; }
+        public int ConsumidorFinalActual { get; set; }
+        public int ConsumidorFinalAnterior { get; set; }
     }
 
     public class EReporteKpiHistoricoGerente
@@ -47,11 +47,13 @@
         public decimal ClienteMesIngresos { get; set; }
         public int ClienteMesOrdenes { get; set; }
     }
+
     public class EReporteKpiGerenteVendedores
     {
         public int VendedoresActivos { get; set; }
         public decimal IngresoPromedio { get; set; }
         public decimal OrdenesPromedio { get; set; }
+        public int TotalOrdenes { get; set; }
         public string VendedorMesNombre { get; set; } = "Sin ventas";
         public int VendedorMesOrdenes { get; set; }
         public decimal VendedorMesIngresos { get; set; }

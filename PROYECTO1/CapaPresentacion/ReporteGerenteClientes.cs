@@ -20,6 +20,7 @@ namespace PROYECTO1.CapaPresentacion
         private readonly List<(DateTime Fecha, int Cantidad)> datosHistoricos = new();
         private readonly List<(string Metodo, int Cantidad, float Porcentaje, Color ColorSegmento)> _datosDonut = new();
         private readonly ToolTip _toolTip = new();
+        private bool panelFiltrosAbierto = false;
 
         public ReporteGerenteClientes()
         {
@@ -28,20 +29,100 @@ namespace PROYECTO1.CapaPresentacion
             panelGraficoLineasDefault.Paint += PanelGraficoLineasDefault_Paint;
             panelContenedorDonut.Paint += PanelContenedorDonut_Paint;
             btnExportar.Click += BtnExportar_Click;
+
+            // Eventos del panel de filtros
+            btnToggleFiltros.Click += BtnToggleFiltros_Click;
+            btnCerrarPanel.Click += BtnCerrarPanel_Click;
+            btnAplicarFiltros.Click += BtnAplicarFiltros_Click;
+            btnLimpiarFiltros.Click += BtnLimpiarFiltros_Click;
+
+            ConfigurarCombosFiltros();
         }
 
         private void ReporteGerenteClientes_Load(object? sender, EventArgs e)
         {
             ConfigurarEstiloLabels();
             ConfigurarColumnasTabla();
-            CargarMetricasClientes();
-            CargarTop10Clientes();
-            CargarGraficoNuevosClientes();
-            CargarGraficoMetodosPago();
+
+            // Ocultar y configurar el panel lateral de filtros al inicio
+            panelFiltros.Dock = DockStyle.Right;
+            panelFiltros.Visible = false;
+            btnToggleFiltros.BorderRadius = btnToggleFiltros.Width / 2;
+
+            RecargarDatosFiltrados();
+        }
+
+        private void ConfigurarCombosFiltros()
+        {
+            fechaDesdeVentas.Checked = false;
+            fechaHastaVentas.Checked = false;
+            filtroTipoCliente.SelectedIndex = 0;
+
+            filtroMetodoPago.Items.Clear();
+            filtroMetodoPago.Items.AddRange(new object[] { "Todos", "Efectivo", "Credito", "Debito", "Transferencia" });
+            filtroMetodoPago.SelectedIndex = 0;
+        }
+
+        private void BtnToggleFiltros_Click(object? sender, EventArgs e)
+        {
+            panelFiltrosAbierto = !panelFiltrosAbierto;
+            panelFiltros.Visible = panelFiltrosAbierto;
+
+            if (panelFiltrosAbierto)
+            {
+                panelFiltros.BringToFront();
+                btnToggleFiltros.FillColor = Color.FromArgb(43, 50, 68);
+            }
+            else
+            {
+                btnToggleFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            }
+        }
+
+        private void BtnCerrarPanel_Click(object? sender, EventArgs e)
+        {
+            if (panelFiltrosAbierto) BtnToggleFiltros_Click(null, null);
+        }
+
+        private void BtnLimpiarFiltros_Click(object? sender, EventArgs e)
+        {
+            ConfigurarCombosFiltros();
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        private void BtnAplicarFiltros_Click(object? sender, EventArgs e)
+        {
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        private void RecargarDatosFiltrados()
+        {
+            DateTime? desde = fechaDesdeVentas.Checked ? fechaDesdeVentas.Value.Date : null;
+            DateTime? hasta = fechaHastaVentas.Checked ? fechaHastaVentas.Value.Date : null;
+            string tipo = filtroTipoCliente.SelectedItem?.ToString() ?? "Todos";
+            string metodo = filtroMetodoPago.SelectedItem?.ToString() ?? "Todos";
+
+            CargarMetricasClientes(desde, hasta, tipo, metodo);
+            CargarTop10Clientes(desde, hasta, tipo, metodo);
+            CargarGraficoNuevosClientes(desde, hasta, tipo, metodo);
+            CargarGraficoMetodosPago(desde, hasta, tipo, metodo);
         }
 
         private void ConfigurarEstiloLabels()
         {
+            // Unificación de términos
+            tituloClientes.Text = "CLIENTES ACTIVOS";
+            tituloClientesRecurrentes.Text = "CLIENTES RECURRENTES";
+
+            tituloClienteMes.Text = "CLIENTE DEL MES";
+            tituloOrdenesClienteMes.Text = "ÓRDENES DEL MES";
+            tituloIngresosClientesMes.Text = "INGRESOS DEL MES";
+
+            tituloNuevosClientesMes.Text = "NUEVOS CLIENTES";
+            tituloTablaTOP10Clientes.Text = "TOP 10 CLIENTES";
+
             void ConfigurarTarjetaKPI(Guna2Panel panel, Label lblImg, Label lblTexto, float tamanoFuente)
             {
                 lblImg.AutoSize = false;
@@ -69,7 +150,6 @@ namespace PROYECTO1.CapaPresentacion
             ConfigurarTarjetaKPI(panelVentasCliente, imagenVxCliente, lblVentasCliente, 18F);
             ConfigurarTarjetaKPI(panelClientesRecurrentes, imagenClientesRecurrentes, lblClientesRecurrentes, 26F);
 
-            // Ajuste de las 3 tarjetas del mes
             lblNombreClientesMes.AutoSize = false;
             lblNombreClientesMes.Dock = DockStyle.Fill;
             lblNombreClientesMes.TextAlign = ContentAlignment.MiddleCenter;
@@ -116,21 +196,22 @@ namespace PROYECTO1.CapaPresentacion
             CIngresos.FillWeight = 22;
         }
 
-        private void CargarMetricasClientes()
+        private void CargarMetricasClientes(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             try
             {
-                var kpi = _lReporte.ObtenerKpisGerenteClientes();
+                var kpi = _lReporte.ObtenerKpisGerenteClientes(desde, hasta, tipo, metodo);
 
                 lblClientes.Text = kpi.ClientesActivos.ToString("N0", cultura);
                 lblVentasCliente.Text = FormatearMonedaCompacta(kpi.VentasPorCliente);
                 lblClientesRecurrentes.Text = kpi.ClientesRecurrentes.ToString("N0", cultura);
 
+                // Tarjetas del mes (Independientes del filtro de fecha)
                 lblNombreClientesMes.Text = kpi.ClienteMesNombre;
                 lblOrdenesClienteMes.Text = kpi.ClienteMesOrdenes.ToString("N0", cultura);
                 lblIngresosClientesMes.Text = FormatearMonedaCompacta(kpi.ClienteMesIngresos);
 
-                _toolTip.SetToolTip(lblVentasCliente, $"Promedio exacto: $ {kpi.VentasPorCliente.ToString("N2", cultura)}");
+                _toolTip.SetToolTip(lblVentasCliente, $"Ventas promedio por cliente: $ {kpi.VentasPorCliente.ToString("N2", cultura)}");
                 _toolTip.SetToolTip(lblNombreClientesMes, $"Cliente del mes: {kpi.ClienteMesNombre}");
                 _toolTip.SetToolTip(lblIngresosClientesMes, $"Ingresos del mes: $ {kpi.ClienteMesIngresos.ToString("N2", cultura)}");
             }
@@ -140,11 +221,11 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarTop10Clientes()
+        private void CargarTop10Clientes(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             try
             {
-                DataTable dt = _lReporte.ObtenerTop10Clientes();
+                DataTable dt = _lReporte.ObtenerTop10Clientes(desde, hasta, tipo, metodo);
                 dataGridViewClientes.DataSource = dt;
                 dataGridViewClientes.ClearSelection();
             }
@@ -154,12 +235,12 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarGraficoNuevosClientes()
+        private void CargarGraficoNuevosClientes(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             datosHistoricos.Clear();
             try
             {
-                datosHistoricos.AddRange(_lReporte.ObtenerGraficoNuevosClientes());
+                datosHistoricos.AddRange(_lReporte.ObtenerGraficoNuevosClientes(desde, hasta, tipo, metodo));
                 panelGraficoLineasDefault.Invalidate();
             }
             catch (Exception ex)
@@ -168,6 +249,9 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
+        // =========================================================================================
+        // MÉTODO CORREGIDO: DIBUJO DEL GRÁFICO CON ESCALA Y REJILLA INTELIGENTE
+        // =========================================================================================
         private void PanelGraficoLineasDefault_Paint(object? sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -176,7 +260,8 @@ namespace PROYECTO1.CapaPresentacion
             int w = panelGraficoLineasDefault.ClientSize.Width;
             int h = panelGraficoLineasDefault.ClientSize.Height;
 
-            if (datosHistoricos.Count < 2)
+            int n = datosHistoricos.Count;
+            if (n < 2)
             {
                 using var fontVacio = new Font("Segoe UI", 9.5F, FontStyle.Italic);
                 g.DrawString("No hay suficientes datos históricos registrados.", fontVacio, Brushes.LightGray, 30, h / 2 - 10);
@@ -191,27 +276,55 @@ namespace PROYECTO1.CapaPresentacion
             float plotW = w - padLeft - padRight;
             float plotH = h - padTop - padBottom;
 
+            // Búsqueda del valor máximo real de los datos
             int maxVal = datosHistoricos.Max(d => d.Cantidad);
-            if (maxVal <= 0) maxVal = 5;
-            maxVal = (int)Math.Ceiling(maxVal * 1.2);
 
-            int n = datosHistoricos.Count;
+            // Queremos que el gráfico tenga siempre exactamente 4 líneas divisorias horizontales
             int lineasY = 4;
+
+            // 1. Aseguramos un techo mínimo visual (para que 1 alta no ocupe todo el gráfico)
+            if (maxVal < lineasY)
+            {
+                maxVal = lineasY; // Mínimo absoluto será 4
+            }
+            else
+            {
+                // 2. Le damos un pequeño respiro arriba (20%)
+                maxVal = (int)Math.Ceiling(maxVal * 1.2);
+
+                // 3. LA CORRECCIÓN CLAVE: Forzamos que maxVal sea un múltiplo perfecto de 'lineasY' (4).
+                // Esto garantiza que (maxVal / lineasY) dé siempre un número entero y nunca se repitan las etiquetas.
+                int resto = maxVal % lineasY;
+                if (resto != 0)
+                {
+                    maxVal += (lineasY - resto);
+                }
+            }
 
             using (var fontAxis = new Font("Segoe UI", 8F, FontStyle.Regular))
             using (var brushAxis = new SolidBrush(Color.FromArgb(180, 190, 205)))
+            using (var penGrid = new Pen(Color.FromArgb(65, 75, 98), 1f) { DashStyle = DashStyle.Dash }) // Línea punteada para el fondo
             {
+                // Dibujamos las etiquetas del Eje Y y las líneas de fondo (Grid)
                 for (int i = 0; i <= lineasY; i++)
                 {
                     float y = padTop + (plotH / lineasY) * i;
+
+                    // Al haber forzado el múltiplo, esta división es siempre exacta
                     int valorNivel = maxVal - (maxVal / lineasY) * i;
 
                     string textoY = valorNivel.ToString("N0", cultura);
                     SizeF sz = g.MeasureString(textoY, fontAxis);
+
+                    // Dibujar el número a la izquierda
                     g.DrawString(textoY, fontAxis, brushAxis, padLeft - sz.Width - 8, y - sz.Height / 2);
+
+                    // Dibujar la línea punteada horizontal
+                    g.DrawLine(penGrid, padLeft, y, w - padRight, y);
                 }
             }
 
+            // Calculamos las posiciones X e Y de los datos
             PointF[] puntos = new PointF[n];
             for (int i = 0; i < n; i++)
             {
@@ -220,6 +333,7 @@ namespace PROYECTO1.CapaPresentacion
                 puntos[i] = new PointF(px, py);
             }
 
+            // Eje X (Meses)
             int pasoEtiquetas = Math.Max(1, n / 5);
             using (var fontAxisX = new Font("Segoe UI", 8F, FontStyle.Regular))
             using (var brushAxisX = new SolidBrush(Color.FromArgb(180, 190, 205)))
@@ -232,16 +346,29 @@ namespace PROYECTO1.CapaPresentacion
                 }
             }
 
-            using var penLinea = new Pen(Color.White, 2.5f);
-            g.DrawLines(penLinea, puntos);
-        }
+            // Dibujar la línea de tendencia
+            using (var penLinea = new Pen(Color.White, 2.5f))
+            {
+                g.DrawLines(penLinea, puntos);
+            }
 
-        private void CargarGraficoMetodosPago()
+            // Dibujar los nodos circulares sobre cada vértice
+            using (var brushPunto = new SolidBrush(Color.FromArgb(109, 124, 163)))
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    g.FillEllipse(brushPunto, puntos[i].X - 4, puntos[i].Y - 4, 8, 8);
+                }
+            }
+        }
+        // =========================================================================================
+
+        private void CargarGraficoMetodosPago(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             _datosDonut.Clear();
             try
             {
-                DataTable dt = _lReporte.ObtenerMetodosPagoPorOrdenes();
+                DataTable dt = _lReporte.ObtenerMetodosPagoPorOrdenes(desde, hasta, tipo, metodo);
                 if (dt.Rows.Count == 0) return;
 
                 int totalOrdenes = 0;
@@ -339,7 +466,7 @@ namespace PROYECTO1.CapaPresentacion
             using (var fontTotalSub = new Font("Segoe UI", 7.5F, FontStyle.Bold))
             {
                 string txtNum = totalItems.ToString("N0", cultura);
-                string txtSub = "ORDENES";
+                string txtSub = "ÓRDENES";
 
                 SizeF szNum = g.MeasureString(txtNum, fontTotalNum);
                 SizeF szSub = g.MeasureString(txtSub, fontTotalSub);

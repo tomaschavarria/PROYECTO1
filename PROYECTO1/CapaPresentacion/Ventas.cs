@@ -16,6 +16,11 @@ namespace PROYECTO1.CapaPresentacion
     {
         private readonly LVenta _lVenta = new();
 
+        // Porcentajes configurables para los métodos de pago.
+        // Ambas formas de pago tienen un descuento del 10 %.
+        private const decimal DescuentoEfectivo = 0.10m;
+        private const decimal DescuentoTransferencia = 0.10m;
+
         private class ClienteDTO
         {
             public int IdCliente { get; set; }
@@ -36,8 +41,8 @@ namespace PROYECTO1.CapaPresentacion
             public int Stock { get; set; }
             public decimal PrecioVenta { get; set; }
 
-            public string DisplayId => $"{IdProducto} - {Nombre} - {Categoria}".Trim();
-            public string DisplayNombre => $"{Nombre} - {Categoria} (ID {IdProducto})".Trim();
+            public string DisplayId => $"{IdProducto} - {Nombre}".Trim();
+            public string DisplayNombre => $"{Nombre} - ID {IdProducto}".Trim();
         }
 
         public class ItemCarrito
@@ -209,9 +214,11 @@ namespace PROYECTO1.CapaPresentacion
         {
             _clienteSeleccionado = null;
             textBoxBuscadorCliente.Clear();
-            textBoxNombreCliente.Clear();
+            // No se exige registrar un cliente para una venta de consumidor final.
+            // No se crea un cliente ficticio en la base: IdCliente quedará en NULL.
+            textBoxNombreCliente.Text = "Consumidor Final";
             textBoxApellidoCliente.Clear();
-            textBoxDNICliente.Clear();
+            textBoxDNICliente.Text = "00000000";
             LimpiarMetodoPago();
         }
 
@@ -476,11 +483,49 @@ namespace PROYECTO1.CapaPresentacion
             return subtotal * porcentaje;
         }
 
+        // El descuento solo se aplica a efectivo o transferencia.
+        // Las cuotas de crédito conservan sus recargos originales.
+        private decimal ObtenerPorcentajeDescuento()
+        {
+            if (comboBoxMetodoPago.SelectedIndex < 0) return 0m;
+
+            string metodo = comboBoxMetodoPago.Text.Trim();
+            if (string.Equals(metodo, "Efectivo", StringComparison.OrdinalIgnoreCase))
+                return DescuentoEfectivo;
+            if (string.Equals(metodo, "Transferencia", StringComparison.OrdinalIgnoreCase))
+                return DescuentoTransferencia;
+            return 0m;
+        }
+
+        private decimal ObtenerMontoDescuento(decimal subtotal) =>
+            decimal.Round(subtotal * ObtenerPorcentajeDescuento(), 2, MidpointRounding.AwayFromZero);
+
         private decimal CalcularTotalVenta()
         {
             decimal subtotal = _carrito.Sum(i => i.SubTotal);
             decimal recargo = ObtenerMontoRecargo(subtotal);
-            decimal total = subtotal + recargo;
+            decimal descuento = ObtenerMontoDescuento(subtotal);
+            decimal total = subtotal + recargo - descuento;
+
+            // Desglosar el ajuste en dos renglones para que nunca quede cortado.
+            bool mostrarAjuste = subtotal > 0m && (descuento > 0m || recargo > 0m);
+            labelAjustePago.Visible = mostrarAjuste;
+            labelMontoAjustePago.Visible = mostrarAjuste;
+            if (descuento > 0m)
+            {
+                labelAjustePago.Text = $"Descuento ({ObtenerPorcentajeDescuento():P0})";
+                labelMontoAjustePago.Text = $"-$ {descuento:N2}";
+            }
+            else if (recargo > 0m)
+            {
+                labelAjustePago.Text = "Recargo por cuotas";
+                labelMontoAjustePago.Text = $"+$ {recargo:N2}";
+            }
+            else
+            {
+                labelAjustePago.Text = string.Empty;
+                labelMontoAjustePago.Text = string.Empty;
+            }
 
             textBoxImporteTotal.Text = $"$ {total:N2}";
             return total;
@@ -518,7 +563,8 @@ namespace PROYECTO1.CapaPresentacion
 
             decimal subtotal = _carrito.Sum(i => i.SubTotal);
             decimal recargo = ObtenerMontoRecargo(subtotal);
-            decimal totalFinal = subtotal + recargo;
+            decimal descuento = ObtenerMontoDescuento(subtotal);
+            decimal totalFinal = subtotal + recargo - descuento;
             int idUsuarioVendedor = SesionActual.Usuario?.Id ?? 1;
 
             var venta = new EVenta
@@ -527,7 +573,10 @@ namespace PROYECTO1.CapaPresentacion
                 IdCliente = _clienteSeleccionado?.IdCliente,
                 IdMetodoPago = idMetodo,
                 Cuotas = cuotas,
-                Recargo = recargo,
+                // La columna existente 'recargo' almacena el ajuste neto firmado:
+                // positivo para recargos, negativo para descuentos.
+                // El monto pagado y el subtotal del detalle se reconcilian así.
+                Recargo = recargo - descuento,
                 Total = totalFinal
             };
 
@@ -568,6 +617,47 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
+        // El comprobante usa una fuente monoespaciada (Consolas) y 40 caracteres
+        // por renglón, como en FormTicket. Se evita que los importes se mezclen.
+        private static void AgregarImporteAlTicket(StringBuilder sb, string etiqueta, decimal importe)
+        {
+            const int ancho = 40;
+            string valor = (importe < 0m ? "-$ " : "$ ") + Math.Abs(importe).ToString("N2");
+            string titulo = " " + etiqueta;
+            int espacios = ancho - titulo.Length - valor.Length;
+
+            if (espacios < 1)
+            {
+                sb.AppendLine(titulo);
+                sb.AppendLine(valor.PadLeft(ancho));
+            }
+            else
+            {
+                sb.AppendLine(titulo + new string(' ', espacios) + valor);
+            }
+        }
+
+        // No recortar nombres de productos: dividirlos en líneas legibles.
+        private static void AgregarNombreAlTicket(StringBuilder sb, string nombre)
+        {
+            const int anchoTexto = 38;
+            string restante = nombre.Trim();
+            if (restante.Length == 0)
+            {
+                sb.AppendLine(" Producto sin nombre");
+                return;
+            }
+
+            while (restante.Length > anchoTexto)
+            {
+                int corte = restante.LastIndexOf(' ', anchoTexto);
+                if (corte <= 0) corte = anchoTexto;
+                sb.AppendLine(" " + restante.Substring(0, corte).TrimEnd());
+                restante = restante.Substring(corte).TrimStart();
+            }
+            if (restante.Length > 0) sb.AppendLine(" " + restante);
+        }
+
         private string GenerarTextoTicket(int idVenta, decimal totalFinal)
         {
             string clienteNombre = _clienteSeleccionado != null
@@ -591,19 +681,43 @@ namespace PROYECTO1.CapaPresentacion
             sb.AppendLine($" Cliente:  {clienteNombre}");
             sb.AppendLine($" DNI:      {clienteDni}");
             sb.AppendLine("----------------------------------------");
-            sb.AppendLine(" CANT. DESCRIPCION      TALLE   SUBTOTAL");
+            sb.AppendLine("           DETALLE DE VENTA             ");
             sb.AppendLine("----------------------------------------");
 
             foreach (var item in _carrito)
             {
-                string desc = item.Nombre.Length > 15 ? item.Nombre.Substring(0, 15) : item.Nombre.PadRight(15);
-                string tal = item.Talle.PadRight(6);
-                sb.AppendLine($" {item.Cantidad,2}    {desc} {tal} ${item.SubTotal,7:N2}");
+                AgregarNombreAlTicket(sb, item.Nombre);
+
+                string talleYCantidad = $" Talle: {item.Talle}    Cantidad: {item.Cantidad}";
+                if (talleYCantidad.Length <= 40)
+                    sb.AppendLine(talleYCantidad);
+                else
+                {
+                    sb.AppendLine($" Talle: {item.Talle}");
+                    sb.AppendLine($" Cantidad: {item.Cantidad}");
+                }
+
+                AgregarImporteAlTicket(sb, "Precio unitario:", item.PrecioUnitario);
+                AgregarImporteAlTicket(sb, "Subtotal artículo:", item.SubTotal);
+                sb.AppendLine("----------------------------------------");
             }
 
+            decimal subtotal = _carrito.Sum(i => i.SubTotal);
+            decimal recargo = ObtenerMontoRecargo(subtotal);
+            decimal descuento = ObtenerMontoDescuento(subtotal);
+
+            sb.AppendLine($" Método de pago: {comboBoxMetodoPago.Text}");
+            if (EsMetodoCredito(comboBoxMetodoPago.Text))
+                sb.AppendLine($" Cuotas: {ComboBoxCuotas.SelectedItem}");
             sb.AppendLine("----------------------------------------");
-            sb.AppendLine($" Metodo Pago: {comboBoxMetodoPago.Text} ({ComboBoxCuotas.SelectedItem})");
-            sb.AppendLine($" TOTAL:                    ${totalFinal,8:N2}");
+
+            AgregarImporteAlTicket(sb, "Subtotal:", subtotal);
+            if (descuento > 0m)
+                AgregarImporteAlTicket(sb, $"Descuento ({ObtenerPorcentajeDescuento():P0}):", -descuento);
+            if (recargo > 0m)
+                AgregarImporteAlTicket(sb, "Recargo:", recargo);
+            AgregarImporteAlTicket(sb, "TOTAL A PAGAR:", totalFinal);
+
             sb.AppendLine("========================================");
             sb.AppendLine("        ¡GRACIAS POR SU COMPRA!         ");
             sb.AppendLine("========================================");

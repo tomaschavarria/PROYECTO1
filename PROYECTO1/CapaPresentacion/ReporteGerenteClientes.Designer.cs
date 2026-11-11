@@ -73,6 +73,16 @@
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges40 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges37 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges38 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges41 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges42 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges49 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges50 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges43 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges44 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges45 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges46 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges47 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges48 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             lblIngresosClientesMes = new Label();
             pnlIngresosClientesMes = new Guna.UI2.WinForms.Guna2Panel();
             tituloIngresosClientesMes = new Guna.UI2.WinForms.Guna2Button();
@@ -109,6 +119,20 @@
             tituloTablaTOP10Clientes = new Guna.UI2.WinForms.Guna2Button();
             guna2Panel3 = new Guna.UI2.WinForms.Guna2Panel();
             fondoDeTabla = new Guna.UI2.WinForms.Guna2Button();
+            btnToggleFiltros = new Guna.UI2.WinForms.Guna2Button();
+            panelFiltros = new Guna.UI2.WinForms.Guna2Panel();
+            btnCerrarPanel = new Guna.UI2.WinForms.Guna2Button();
+            lblFiltrosTitulo = new Label();
+            etiquetaDesdeVentas = new Label();
+            fechaDesdeVentas = new DateTimePicker();
+            etiquetaHastaVentas = new Label();
+            fechaHastaVentas = new DateTimePicker();
+            lblFiltroTipo = new Label();
+            filtroTipoCliente = new ComboBox();
+            lblFiltroMetodo = new Label();
+            filtroMetodoPago = new ComboBox();
+            btnAplicarFiltros = new Guna.UI2.WinForms.Guna2Button();
+            btnLimpiarFiltros = new Guna.UI2.WinForms.Guna2Button();
             pnlIngresosClientesMes.SuspendLayout();
             pnlOrdenesClienteMes.SuspendLayout();
             pnlNombreClientesMes.SuspendLayout();
@@ -119,6 +143,7 @@
             panelClientesRecurrentes.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridViewClientes).BeginInit();
             guna2Panel3.SuspendLayout();
+            panelFiltros.SuspendLayout();
             SuspendLayout();
             // 
             // lblIngresosClientesMes
@@ -170,14 +195,14 @@
             tituloIngresosClientesMes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloIngresosClientesMes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloIngresosClientesMes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloIngresosClientesMes.Location = new Point(1294, 841);
+            tituloIngresosClientesMes.Location = new Point(1237, 841);
             tituloIngresosClientesMes.Name = "tituloIngresosClientesMes";
             tituloIngresosClientesMes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloIngresosClientesMes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloIngresosClientesMes.ShadowDecoration.CustomizableEdges = customizableEdges4;
-            tituloIngresosClientesMes.Size = new Size(114, 39);
+            tituloIngresosClientesMes.Size = new Size(215, 39);
             tituloIngresosClientesMes.TabIndex = 134;
-            tituloIngresosClientesMes.Text = "INGRESOS ";
+            tituloIngresosClientesMes.Text = "INGRESOS DEL MES";
             tituloIngresosClientesMes.UseTransparentBackground = true;
             // 
             // pnlOrdenesClienteMes
@@ -229,14 +254,14 @@
             tituloOrdenesClienteMes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloOrdenesClienteMes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloOrdenesClienteMes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloOrdenesClienteMes.Location = new Point(931, 841);
+            tituloOrdenesClienteMes.Location = new Point(886, 841);
             tituloOrdenesClienteMes.Name = "tituloOrdenesClienteMes";
             tituloOrdenesClienteMes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloOrdenesClienteMes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloOrdenesClienteMes.ShadowDecoration.CustomizableEdges = customizableEdges8;
-            tituloOrdenesClienteMes.Size = new Size(116, 39);
+            tituloOrdenesClienteMes.Size = new Size(199, 39);
             tituloOrdenesClienteMes.TabIndex = 132;
-            tituloOrdenesClienteMes.Text = "ORDENES ";
+            tituloOrdenesClienteMes.Text = "ÓRDENES DEL MES";
             tituloOrdenesClienteMes.UseTransparentBackground = true;
             // 
             // pnlNombreClientesMes
@@ -245,6 +270,7 @@
             pnlNombreClientesMes.BorderRadius = 25;
             pnlNombreClientesMes.Controls.Add(lblNombreClientesMes);
             pnlNombreClientesMes.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges9.BottomLeft = false;
             pnlNombreClientesMes.CustomizableEdges = customizableEdges9;
             pnlNombreClientesMes.FillColor = Color.FromArgb(43, 50, 68);
             pnlNombreClientesMes.Location = new Point(1035, 710);
@@ -304,6 +330,7 @@
             panelGraficoLineasGuna.BorderRadius = 25;
             panelGraficoLineasGuna.Controls.Add(panelGraficoLineasDefault);
             panelGraficoLineasGuna.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges13.BottomLeft = false;
             panelGraficoLineasGuna.CustomizableEdges = customizableEdges13;
             panelGraficoLineasGuna.FillColor = Color.FromArgb(43, 50, 68);
             panelGraficoLineasGuna.Location = new Point(170, 267);
@@ -343,14 +370,14 @@
             tituloNuevosClientesMes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloNuevosClientesMes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloNuevosClientesMes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloNuevosClientesMes.Location = new Point(312, 233);
+            tituloNuevosClientesMes.Location = new Point(341, 233);
             tituloNuevosClientesMes.Name = "tituloNuevosClientesMes";
             tituloNuevosClientesMes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloNuevosClientesMes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloNuevosClientesMes.ShadowDecoration.CustomizableEdges = customizableEdges16;
-            tituloNuevosClientesMes.Size = new Size(234, 40);
+            tituloNuevosClientesMes.Size = new Size(199, 40);
             tituloNuevosClientesMes.TabIndex = 128;
-            tituloNuevosClientesMes.Text = "NUEVOS CLIENTES POR MES";
+            tituloNuevosClientesMes.Text = "NUEVOS CLIENTES";
             tituloNuevosClientesMes.UseTransparentBackground = true;
             // 
             // panelGraficoDonut
@@ -359,6 +386,7 @@
             panelGraficoDonut.BorderRadius = 25;
             panelGraficoDonut.Controls.Add(panelContenedorDonut);
             panelGraficoDonut.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges17.BottomLeft = false;
             panelGraficoDonut.CustomizableEdges = customizableEdges17;
             panelGraficoDonut.FillColor = Color.FromArgb(43, 50, 68);
             panelGraficoDonut.Location = new Point(853, 267);
@@ -370,7 +398,7 @@
             // panelContenedorDonut
             // 
             panelContenedorDonut.BackColor = Color.FromArgb(43, 50, 68);
-            panelContenedorDonut.Location = new Point(3, 22);
+            panelContenedorDonut.Location = new Point(55, 22);
             panelContenedorDonut.Name = "panelContenedorDonut";
             panelContenedorDonut.Size = new Size(494, 265);
             panelContenedorDonut.TabIndex = 0;
@@ -397,14 +425,14 @@
             tituloNOrdenesMetodoPago.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloNOrdenesMetodoPago.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloNOrdenesMetodoPago.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloNOrdenesMetodoPago.Location = new Point(985, 233);
+            tituloNOrdenesMetodoPago.Location = new Point(1014, 233);
             tituloNOrdenesMetodoPago.Name = "tituloNOrdenesMetodoPago";
             tituloNOrdenesMetodoPago.PressedColor = Color.FromArgb(43, 50, 68);
             tituloNOrdenesMetodoPago.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloNOrdenesMetodoPago.ShadowDecoration.CustomizableEdges = customizableEdges20;
-            tituloNOrdenesMetodoPago.Size = new Size(317, 40);
+            tituloNOrdenesMetodoPago.Size = new Size(285, 40);
             tituloNOrdenesMetodoPago.TabIndex = 126;
-            tituloNOrdenesMetodoPago.Text = "% DE ORDENES POR METODO DE PAGO";
+            tituloNOrdenesMetodoPago.Text = "% DE ÓRDENES POR M DE PAGO";
             tituloNOrdenesMetodoPago.UseTransparentBackground = true;
             // 
             // panelVentasCliente
@@ -414,6 +442,7 @@
             panelVentasCliente.Controls.Add(imagenVxCliente);
             panelVentasCliente.Controls.Add(lblVentasCliente);
             panelVentasCliente.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges21.BottomLeft = false;
             panelVentasCliente.CustomizableEdges = customizableEdges21;
             panelVentasCliente.FillColor = Color.FromArgb(43, 50, 68);
             panelVentasCliente.Location = new Point(637, 61);
@@ -479,7 +508,7 @@
             tituloVentasCleinte.ShadowDecoration.CustomizableEdges = customizableEdges24;
             tituloVentasCleinte.Size = new Size(189, 39);
             tituloVentasCleinte.TabIndex = 121;
-            tituloVentasCleinte.Text = "VENTAS POR CLIENTE";
+            tituloVentasCleinte.Text = "GASTO PROMEDIO";
             tituloVentasCleinte.UseTransparentBackground = true;
             // 
             // panelClientes
@@ -489,6 +518,7 @@
             panelClientes.Controls.Add(imagenClientes);
             panelClientes.Controls.Add(lblClientes);
             panelClientes.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges25.BottomLeft = false;
             panelClientes.CustomizableEdges = customizableEdges25;
             panelClientes.FillColor = Color.FromArgb(43, 50, 68);
             panelClientes.Location = new Point(238, 61);
@@ -552,9 +582,9 @@
             tituloClientes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloClientes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
             tituloClientes.ShadowDecoration.CustomizableEdges = customizableEdges28;
-            tituloClientes.Size = new Size(142, 39);
+            tituloClientes.Size = new Size(168, 39);
             tituloClientes.TabIndex = 119;
-            tituloClientes.Text = "CLIENTES";
+            tituloClientes.Text = "CLIENTES ACTIVOS";
             tituloClientes.UseTransparentBackground = true;
             // 
             // panelClientesRecurrentes
@@ -564,6 +594,7 @@
             panelClientesRecurrentes.Controls.Add(imagenClientesRecurrentes);
             panelClientesRecurrentes.Controls.Add(lblClientesRecurrentes);
             panelClientesRecurrentes.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges29.BottomLeft = false;
             panelClientesRecurrentes.CustomizableEdges = customizableEdges29;
             panelClientesRecurrentes.FillColor = Color.FromArgb(43, 50, 68);
             panelClientesRecurrentes.Location = new Point(1042, 61);
@@ -761,7 +792,7 @@
             tituloTablaTOP10Clientes.HoverState.CustomBorderColor = Color.FromArgb(43, 50, 68);
             tituloTablaTOP10Clientes.HoverState.FillColor = Color.FromArgb(43, 50, 68);
             tituloTablaTOP10Clientes.HoverState.ForeColor = SystemColors.ButtonHighlight;
-            tituloTablaTOP10Clientes.Location = new Point(290, 642);
+            tituloTablaTOP10Clientes.Location = new Point(285, 651);
             tituloTablaTOP10Clientes.Name = "tituloTablaTOP10Clientes";
             tituloTablaTOP10Clientes.PressedColor = Color.FromArgb(43, 50, 68);
             tituloTablaTOP10Clientes.ShadowDecoration.Color = Color.FromArgb(43, 50, 68);
@@ -778,6 +809,8 @@
             guna2Panel3.BorderRadius = 25;
             guna2Panel3.Controls.Add(fondoDeTabla);
             guna2Panel3.CustomBorderColor = Color.FromArgb(43, 50, 68);
+            customizableEdges39.BottomLeft = false;
+            customizableEdges39.BottomRight = false;
             guna2Panel3.CustomizableEdges = customizableEdges39;
             guna2Panel3.FillColor = Color.FromArgb(43, 50, 68);
             guna2Panel3.Location = new Point(143, 687);
@@ -815,12 +848,205 @@
             fondoDeTabla.Size = new Size(621, 30);
             fondoDeTabla.TabIndex = 98;
             // 
+            // btnToggleFiltros
+            // 
+            btnToggleFiltros.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnToggleFiltros.BorderRadius = 25;
+            btnToggleFiltros.CustomizableEdges = customizableEdges41;
+            btnToggleFiltros.DisabledState.BorderColor = Color.DarkGray;
+            btnToggleFiltros.DisabledState.CustomBorderColor = Color.DarkGray;
+            btnToggleFiltros.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
+            btnToggleFiltros.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
+            btnToggleFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            btnToggleFiltros.Font = new Font("Segoe UI Emoji", 14F);
+            btnToggleFiltros.ForeColor = Color.White;
+            btnToggleFiltros.Location = new Point(1830, 21);
+            btnToggleFiltros.Name = "btnToggleFiltros";
+            btnToggleFiltros.ShadowDecoration.CustomizableEdges = customizableEdges42;
+            btnToggleFiltros.Size = new Size(50, 50);
+            btnToggleFiltros.TabIndex = 114;
+            btnToggleFiltros.Text = "⚙️";
+            // 
+            // panelFiltros
+            // 
+            panelFiltros.BackColor = Color.FromArgb(32, 36, 47);
+            panelFiltros.Controls.Add(btnCerrarPanel);
+            panelFiltros.Controls.Add(lblFiltrosTitulo);
+            panelFiltros.Controls.Add(etiquetaDesdeVentas);
+            panelFiltros.Controls.Add(fechaDesdeVentas);
+            panelFiltros.Controls.Add(etiquetaHastaVentas);
+            panelFiltros.Controls.Add(fechaHastaVentas);
+            panelFiltros.Controls.Add(lblFiltroTipo);
+            panelFiltros.Controls.Add(filtroTipoCliente);
+            panelFiltros.Controls.Add(lblFiltroMetodo);
+            panelFiltros.Controls.Add(filtroMetodoPago);
+            panelFiltros.Controls.Add(btnAplicarFiltros);
+            panelFiltros.Controls.Add(btnLimpiarFiltros);
+            panelFiltros.CustomizableEdges = customizableEdges49;
+            panelFiltros.Dock = DockStyle.Right;
+            panelFiltros.Location = new Point(1620, 0);
+            panelFiltros.Name = "panelFiltros";
+            panelFiltros.ShadowDecoration.CustomizableEdges = customizableEdges50;
+            panelFiltros.Size = new Size(300, 1080);
+            panelFiltros.TabIndex = 115;
+            // 
+            // btnCerrarPanel
+            // 
+            btnCerrarPanel.AutoRoundedCorners = true;
+            btnCerrarPanel.BackColor = Color.Transparent;
+            btnCerrarPanel.CustomizableEdges = customizableEdges43;
+            btnCerrarPanel.DisabledState.BorderColor = Color.DarkGray;
+            btnCerrarPanel.DisabledState.CustomBorderColor = Color.DarkGray;
+            btnCerrarPanel.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
+            btnCerrarPanel.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
+            btnCerrarPanel.FillColor = Color.Transparent;
+            btnCerrarPanel.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnCerrarPanel.ForeColor = Color.FromArgb(180, 190, 205);
+            btnCerrarPanel.HoverState.FillColor = Color.FromArgb(245, 101, 101);
+            btnCerrarPanel.HoverState.ForeColor = Color.White;
+            btnCerrarPanel.Location = new Point(250, 12);
+            btnCerrarPanel.Name = "btnCerrarPanel";
+            btnCerrarPanel.ShadowDecoration.CustomizableEdges = customizableEdges44;
+            btnCerrarPanel.Size = new Size(38, 38);
+            btnCerrarPanel.TabIndex = 11;
+            btnCerrarPanel.Text = "✕";
+            // 
+            // lblFiltrosTitulo
+            // 
+            lblFiltrosTitulo.AutoSize = true;
+            lblFiltrosTitulo.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
+            lblFiltrosTitulo.ForeColor = Color.White;
+            lblFiltrosTitulo.Location = new Point(20, 30);
+            lblFiltrosTitulo.Name = "lblFiltrosTitulo";
+            lblFiltrosTitulo.Size = new Size(247, 38);
+            lblFiltrosTitulo.TabIndex = 0;
+            lblFiltrosTitulo.Text = "Filtros Avanzados";
+            // 
+            // etiquetaDesdeVentas
+            // 
+            etiquetaDesdeVentas.AutoSize = true;
+            etiquetaDesdeVentas.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            etiquetaDesdeVentas.ForeColor = Color.White;
+            etiquetaDesdeVentas.Location = new Point(73, 87);
+            etiquetaDesdeVentas.Name = "etiquetaDesdeVentas";
+            etiquetaDesdeVentas.Size = new Size(105, 21);
+            etiquetaDesdeVentas.TabIndex = 1;
+            etiquetaDesdeVentas.Text = "Fecha Desde";
+            // 
+            // fechaDesdeVentas
+            // 
+            fechaDesdeVentas.CalendarForeColor = Color.Black;
+            fechaDesdeVentas.CalendarMonthBackground = Color.White;
+            fechaDesdeVentas.CustomFormat = "dd/MM/yyyy";
+            fechaDesdeVentas.Font = new Font("Segoe UI", 9F);
+            fechaDesdeVentas.Format = DateTimePickerFormat.Custom;
+            fechaDesdeVentas.Location = new Point(73, 107);
+            fechaDesdeVentas.Name = "fechaDesdeVentas";
+            fechaDesdeVentas.ShowCheckBox = true;
+            fechaDesdeVentas.Size = new Size(162, 28);
+            fechaDesdeVentas.TabIndex = 2;
+            // 
+            // etiquetaHastaVentas
+            // 
+            etiquetaHastaVentas.AutoSize = true;
+            etiquetaHastaVentas.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            etiquetaHastaVentas.ForeColor = Color.White;
+            etiquetaHastaVentas.Location = new Point(73, 147);
+            etiquetaHastaVentas.Name = "etiquetaHastaVentas";
+            etiquetaHastaVentas.Size = new Size(101, 21);
+            etiquetaHastaVentas.TabIndex = 3;
+            etiquetaHastaVentas.Text = "Fecha Hasta";
+            // 
+            // fechaHastaVentas
+            // 
+            fechaHastaVentas.CalendarForeColor = Color.Black;
+            fechaHastaVentas.CalendarMonthBackground = Color.White;
+            fechaHastaVentas.CustomFormat = "dd/MM/yyyy";
+            fechaHastaVentas.Font = new Font("Segoe UI", 9F);
+            fechaHastaVentas.Format = DateTimePickerFormat.Custom;
+            fechaHastaVentas.Location = new Point(73, 167);
+            fechaHastaVentas.Name = "fechaHastaVentas";
+            fechaHastaVentas.ShowCheckBox = true;
+            fechaHastaVentas.Size = new Size(162, 28);
+            fechaHastaVentas.TabIndex = 4;
+            // 
+            // lblFiltroTipo
+            // 
+            lblFiltroTipo.AutoSize = true;
+            lblFiltroTipo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblFiltroTipo.ForeColor = Color.White;
+            lblFiltroTipo.Location = new Point(73, 207);
+            lblFiltroTipo.Name = "lblFiltroTipo";
+            lblFiltroTipo.Size = new Size(125, 21);
+            lblFiltroTipo.TabIndex = 5;
+            lblFiltroTipo.Text = "Tipo de Cliente";
+            // 
+            // filtroTipoCliente
+            // 
+            filtroTipoCliente.DropDownStyle = ComboBoxStyle.DropDownList;
+            filtroTipoCliente.Font = new Font("Segoe UI", 9F);
+            filtroTipoCliente.Items.AddRange(new object[] { "Todos", "Consumidor Final", "Registrados" });
+            filtroTipoCliente.Location = new Point(73, 227);
+            filtroTipoCliente.Name = "filtroTipoCliente";
+            filtroTipoCliente.Size = new Size(162, 29);
+            filtroTipoCliente.TabIndex = 6;
+            // 
+            // lblFiltroMetodo
+            // 
+            lblFiltroMetodo.AutoSize = true;
+            lblFiltroMetodo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblFiltroMetodo.ForeColor = Color.White;
+            lblFiltroMetodo.Location = new Point(73, 267);
+            lblFiltroMetodo.Name = "lblFiltroMetodo";
+            lblFiltroMetodo.Size = new Size(136, 21);
+            lblFiltroMetodo.TabIndex = 7;
+            lblFiltroMetodo.Text = "Método de Pago";
+            // 
+            // filtroMetodoPago
+            // 
+            filtroMetodoPago.DropDownStyle = ComboBoxStyle.DropDownList;
+            filtroMetodoPago.Font = new Font("Segoe UI", 9F);
+            filtroMetodoPago.Location = new Point(73, 287);
+            filtroMetodoPago.Name = "filtroMetodoPago";
+            filtroMetodoPago.Size = new Size(162, 29);
+            filtroMetodoPago.TabIndex = 8;
+            // 
+            // btnAplicarFiltros
+            // 
+            btnAplicarFiltros.AutoRoundedCorners = true;
+            btnAplicarFiltros.CustomizableEdges = customizableEdges45;
+            btnAplicarFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            btnAplicarFiltros.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnAplicarFiltros.ForeColor = Color.White;
+            btnAplicarFiltros.Location = new Point(68, 349);
+            btnAplicarFiltros.Name = "btnAplicarFiltros";
+            btnAplicarFiltros.ShadowDecoration.CustomizableEdges = customizableEdges46;
+            btnAplicarFiltros.Size = new Size(176, 45);
+            btnAplicarFiltros.TabIndex = 9;
+            btnAplicarFiltros.Text = "APLICAR FILTROS";
+            // 
+            // btnLimpiarFiltros
+            // 
+            btnLimpiarFiltros.AutoRoundedCorners = true;
+            btnLimpiarFiltros.CustomizableEdges = customizableEdges47;
+            btnLimpiarFiltros.FillColor = Color.FromArgb(43, 50, 68);
+            btnLimpiarFiltros.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnLimpiarFiltros.ForeColor = Color.White;
+            btnLimpiarFiltros.Location = new Point(68, 405);
+            btnLimpiarFiltros.Name = "btnLimpiarFiltros";
+            btnLimpiarFiltros.ShadowDecoration.CustomizableEdges = customizableEdges48;
+            btnLimpiarFiltros.Size = new Size(176, 45);
+            btnLimpiarFiltros.TabIndex = 10;
+            btnLimpiarFiltros.Text = "LIMPIAR FILTROS";
+            // 
             // ReporteGerenteClientes
             // 
             AutoScaleDimensions = new SizeF(9F, 21F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(25, 29, 36);
             ClientSize = new Size(1920, 1080);
+            Controls.Add(panelFiltros);
+            Controls.Add(btnToggleFiltros);
             Controls.Add(btnExportar);
             Controls.Add(dataGridViewClientes);
             Controls.Add(tituloTablaTOP10Clientes);
@@ -860,6 +1086,8 @@
             panelClientesRecurrentes.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridViewClientes).EndInit();
             guna2Panel3.ResumeLayout(false);
+            panelFiltros.ResumeLayout(false);
+            panelFiltros.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -901,5 +1129,19 @@
         private DataGridViewTextBoxColumn CNombre;
         private DataGridViewTextBoxColumn COrdenes;
         private DataGridViewTextBoxColumn CIngresos;
+        private Guna.UI2.WinForms.Guna2Button btnToggleFiltros;
+        private Guna.UI2.WinForms.Guna2Panel panelFiltros;
+        private Label lblFiltrosTitulo;
+        private Guna.UI2.WinForms.Guna2Button btnCerrarPanel;
+        private Label etiquetaDesdeVentas;
+        private DateTimePicker fechaDesdeVentas;
+        private Label etiquetaHastaVentas;
+        private DateTimePicker fechaHastaVentas;
+        private Label lblFiltroTipo;
+        private ComboBox filtroTipoCliente;
+        private Label lblFiltroMetodo;
+        private ComboBox filtroMetodoPago;
+        private Guna.UI2.WinForms.Guna2Button btnAplicarFiltros;
+        private Guna.UI2.WinForms.Guna2Button btnLimpiarFiltros;
     }
 }

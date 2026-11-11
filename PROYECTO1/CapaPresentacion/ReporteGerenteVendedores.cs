@@ -19,6 +19,7 @@ namespace PROYECTO1.CapaPresentacion
         private readonly CultureInfo cultura = CultureInfo.GetCultureInfo("es-AR");
         private readonly List<(string Vendedor, decimal Total, float Porcentaje, Color ColorSegmento)> _datosDonut = new();
         private readonly ToolTip _toolTip = new();
+        private bool panelFiltrosAbierto = false;
 
         public ReporteGerenteVendedores()
         {
@@ -27,6 +28,14 @@ namespace PROYECTO1.CapaPresentacion
 
             panelGraficoDonutDefault.Paint += PanelGraficoDonutDefault_Paint;
             btnExportar.Click += BtnExportar_Click;
+
+            // Eventos del panel de filtros
+            btnToggleFiltros.Click += BtnToggleFiltros_Click;
+            btnCerrarPanel.Click += BtnCerrarPanel_Click;
+            btnAplicarFiltros.Click += BtnAplicarFiltros_Click;
+            btnLimpiarFiltros.Click += BtnLimpiarFiltros_Click;
+
+            ConfigurarCombosFiltros();
         }
 
         private void ReporteGerenteVendedores_Load(object? sender, EventArgs e)
@@ -34,17 +43,86 @@ namespace PROYECTO1.CapaPresentacion
             ConfigurarEstiloLabels();
             ConfigurarColumnasTabla();
 
-            CargarMetricasVendedores();
-            CargarTablaVendedores();
-            CargarGraficoDonutVendedores();
-            CargarGraficoBarrasVendedores();
+            // Ocultar y configurar el panel lateral de filtros al inicio
+            panelFiltros.Dock = DockStyle.Right;
+            panelFiltros.Visible = false;
+            btnToggleFiltros.BorderRadius = btnToggleFiltros.Width / 2;
+
+            RecargarDatosFiltrados();
+        }
+
+        private void ConfigurarCombosFiltros()
+        {
+            fechaDesdeVentas.Checked = false;
+            fechaHastaVentas.Checked = false;
+            filtroTipoCliente.SelectedIndex = 0;
+
+            filtroMetodoPago.Items.Clear();
+            filtroMetodoPago.Items.AddRange(new object[] { "Todos", "Efectivo", "Credito", "Debito", "Transferencia" });
+            filtroMetodoPago.SelectedIndex = 0;
+        }
+
+        private void BtnToggleFiltros_Click(object? sender, EventArgs e)
+        {
+            panelFiltrosAbierto = !panelFiltrosAbierto;
+            panelFiltros.Visible = panelFiltrosAbierto;
+
+            if (panelFiltrosAbierto)
+            {
+                panelFiltros.BringToFront();
+                btnToggleFiltros.FillColor = Color.FromArgb(43, 50, 68);
+            }
+            else
+            {
+                btnToggleFiltros.FillColor = Color.FromArgb(109, 124, 163);
+            }
+        }
+
+        private void BtnCerrarPanel_Click(object? sender, EventArgs e)
+        {
+            if (panelFiltrosAbierto) BtnToggleFiltros_Click(null, null);
+        }
+
+        private void BtnLimpiarFiltros_Click(object? sender, EventArgs e)
+        {
+            ConfigurarCombosFiltros();
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        private void BtnAplicarFiltros_Click(object? sender, EventArgs e)
+        {
+            RecargarDatosFiltrados();
+            BtnToggleFiltros_Click(null, null);
+        }
+
+        private void RecargarDatosFiltrados()
+        {
+            DateTime? desde = fechaDesdeVentas.Checked ? fechaDesdeVentas.Value.Date : null;
+            DateTime? hasta = fechaHastaVentas.Checked ? fechaHastaVentas.Value.Date : null;
+            string tipo = filtroTipoCliente.SelectedItem?.ToString() ?? "Todos";
+            string metodo = filtroMetodoPago.SelectedItem?.ToString() ?? "Todos";
+
+            CargarMetricasVendedores(desde, hasta, tipo, metodo);
+            CargarTablaVendedores(desde, hasta, tipo, metodo);
+            CargarGraficoDonutVendedores(desde, hasta, tipo, metodo);
+            CargarGraficoBarrasVendedores(desde, hasta, tipo, metodo);
         }
 
         private void ConfigurarEstiloLabels()
         {
+            // Unificación de términos con ajustes solicitados
             tituloVendedores.Text = "VENDEDORES ACTIVOS";
-            tituloVentasXVendedor.Text = "INGRESO PROM. X VEND.";
-            tituloNOrdenesXVendedor.Text = "ORDENES PROM. X VEND.";
+            tituloVentasXVendedor.Text = "INGRESO PROMEDIO";
+            tituloNOrdenesXVendedor.Text = "TOTAL DE ÓRDENES";
+
+            tituloVENDEDORMes.Text = "VENDEDOR DEL MES";
+            tituloOrdenesVENDEDORMes.Text = "ÓRDENES DEL MES";
+            tituloIngresosVENDEDORMes.Text = "INGRESOS DEL MES";
+
+            tituloDonutVentasXVendedor.Text = "% DE VENTAS POR VENDEDOR";
+            tituloTOP6Categorias.Text = "CANTIDAD DE PRODUCTOS VENDIDOS X VENDEDOR"; // Título actualizado
+            tituloTablaVendedores.Text = "RENDIMIENTO VENDEDORES";
 
             void ConfigurarTarjetaKPI(Guna2Panel panel, Label lblImg, Label lblTexto, float tamanoFuente)
             {
@@ -119,21 +197,25 @@ namespace PROYECTO1.CapaPresentacion
             CIngresos.FillWeight = 20;
         }
 
-        private void CargarMetricasVendedores()
+        private void CargarMetricasVendedores(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             try
             {
-                var kpi = _lReporte.ObtenerKpisGerenteVendedores();
+                var kpi = _lReporte.ObtenerKpisGerenteVendedores(desde, hasta, tipo, metodo);
 
                 lblVendedores.Text = kpi.VendedoresActivos.ToString("N0", cultura);
                 lblVentasXVendedor.Text = FormatearMonedaCompacta(kpi.IngresoPromedio);
-                lblNOrdenesXVendedor.Text = kpi.OrdenesPromedio.ToString("0.#", cultura);
 
+                // Mostrar Total de Órdenes del equipo (Suma exacta)
+                lblNOrdenesXVendedor.Text = kpi.TotalOrdenes.ToString("N0", cultura);
+
+                // Tarjetas del mes (Independientes del filtro de fecha)
                 lblNombreVENDEDORMes.Text = kpi.VendedorMesNombre;
                 lblOrdenesVENDEDORMes.Text = kpi.VendedorMesOrdenes.ToString("N0", cultura);
                 lblIngresosVENDEDORMes.Text = FormatearMonedaCompacta(kpi.VendedorMesIngresos);
 
-                _toolTip.SetToolTip(lblVentasXVendedor, $"Ingreso promedio: $ {kpi.IngresoPromedio.ToString("N2", cultura)}");
+                _toolTip.SetToolTip(lblVentasXVendedor, $"Ingreso promedio por vendedor: $ {kpi.IngresoPromedio.ToString("N2", cultura)}");
+                _toolTip.SetToolTip(lblNOrdenesXVendedor, $"Total de órdenes generadas por el equipo activo");
                 _toolTip.SetToolTip(lblNombreVENDEDORMes, $"Vendedor del mes: {kpi.VendedorMesNombre}");
                 _toolTip.SetToolTip(lblIngresosVENDEDORMes, $"Ingresos del mes: $ {kpi.VendedorMesIngresos.ToString("N2", cultura)}");
             }
@@ -143,11 +225,11 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarTablaVendedores()
+        private void CargarTablaVendedores(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             try
             {
-                DataTable dt = _lReporte.ObtenerTablaRendimientoVendedores();
+                DataTable dt = _lReporte.ObtenerTablaRendimientoVendedores(desde, hasta, tipo, metodo);
                 dataGridViewVendedores.DataSource = dt;
                 dataGridViewVendedores.ClearSelection();
             }
@@ -157,12 +239,12 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarGraficoDonutVendedores()
+        private void CargarGraficoDonutVendedores(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             _datosDonut.Clear();
             try
             {
-                DataTable dt = _lReporte.ObtenerVentasPorVendedorDonut();
+                DataTable dt = _lReporte.ObtenerVentasPorVendedorDonut(desde, hasta, tipo, metodo);
                 if (dt.Rows.Count == 0) return;
 
                 decimal totalVentas = 0;
@@ -292,19 +374,20 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        private void CargarGraficoBarrasVendedores()
+        private void CargarGraficoBarrasVendedores(DateTime? desde = null, DateTime? hasta = null, string tipo = "Todos", string metodo = "Todos")
         {
             panelContenedorBarras.Controls.Clear();
 
             try
             {
-                DataTable dt = _lReporte.ObtenerTop6VendedoresPorOrdenes();
+                // Ahora obtiene el Top 6 de vendedores sumando las unidades vendidas (dv.cantidad)
+                DataTable dt = _lReporte.ObtenerTop6VendedoresPorOrdenes(desde, hasta, tipo, metodo);
 
                 if (dt.Rows.Count == 0)
                 {
                     var lblVacio = new Label
                     {
-                        Text = "Sin órdenes registradas",
+                        Text = "Sin productos vendidos",
                         Font = new Font("Segoe UI", 9.5F, FontStyle.Italic),
                         ForeColor = Color.FromArgb(160, 174, 192),
                         Dock = DockStyle.Fill,
@@ -317,7 +400,7 @@ namespace PROYECTO1.CapaPresentacion
                 int maxValor = 0;
                 foreach (DataRow row in dt.Rows)
                 {
-                    int val = Convert.ToInt32(row["CantidadOrdenes"]);
+                    int val = Convert.ToInt32(row["CantidadUnidades"]);
                     if (val > maxValor) maxValor = val;
                 }
                 if (maxValor == 0) maxValor = 1;
@@ -328,7 +411,7 @@ namespace PROYECTO1.CapaPresentacion
                 foreach (DataRow row in dt.Rows)
                 {
                     string vendedor = row["Vendedor"].ToString()!;
-                    int cantidad = Convert.ToInt32(row["CantidadOrdenes"]);
+                    int cantidad = Convert.ToInt32(row["CantidadUnidades"]);
 
                     var lblVend = new Label
                     {
@@ -377,7 +460,7 @@ namespace PROYECTO1.CapaPresentacion
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al cargar ranking de vendedores: " + ex.Message, "Reportes", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Error al cargar unidades por vendedor: " + ex.Message, "Reportes", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

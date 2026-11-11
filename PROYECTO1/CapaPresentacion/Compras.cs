@@ -37,6 +37,7 @@ namespace PROYECTO1.CapaPresentacion
             public string Talle { get; set; } = string.Empty;
             public int Stock { get; set; }
             public decimal PrecioCosto { get; set; }
+            public decimal PrecioVenta { get; set; }
 
             public string DisplayId => $"{IdProducto} - {Nombre} - {Categoria}".Trim();
             public string DisplayNombre => $"{Nombre} - {Categoria} (ID {IdProducto})".Trim();
@@ -49,6 +50,7 @@ namespace PROYECTO1.CapaPresentacion
             public string Talle { get; set; } = string.Empty;
             public int Cantidad { get; set; }
             public decimal PrecioCosto { get; set; }
+            public decimal PrecioVenta { get; set; }
             public decimal SubTotal => Cantidad * PrecioCosto;
         }
 
@@ -59,9 +61,12 @@ namespace PROYECTO1.CapaPresentacion
         private ProveedorDTO? _proveedorSeleccionado = null;
         private ProductoCompraDTO? _productoSeleccionado = null;
 
+        private readonly ToolTip _ayudaMargen = new();
+
         public Compras()
         {
             InitializeComponent();
+            ConfigurarCamposRentabilidad();
 
             dataGridViewVentas.CellClick += DataGridViewVentas_CellClick;
             buttonAgregar.Click += ButtonAgregar_Click;
@@ -74,11 +79,62 @@ namespace PROYECTO1.CapaPresentacion
             TextBoxBuscadorProducto.KeyDown += TextBoxBuscadorProducto_KeyDown;
 
             comboBoxTalle.SelectedIndexChanged += ComboBoxTalle_SelectedIndexChanged;
+            textBoxPrecioCosto.TextChanged += (_, __) => ActualizarMargen();
+            textBoxPrecioVentaCompra.TextChanged += (_, __) => ActualizarMargen();
+            textBoxPrecioCosto.Leave += (_, __) => NormalizarPrecio(textBoxPrecioCosto);
+            textBoxPrecioVentaCompra.Leave += (_, __) => NormalizarPrecio(textBoxPrecioVentaCompra);
 
             textBoxCantidad.KeyPress += TextBoxCantidad_KeyPress;
             textBoxCantidad.KeyDown += TextBoxCantidad_KeyDown;
 
             Load += Compras_Load;
+        }
+
+        private void ConfigurarCamposRentabilidad()
+        {
+            textBoxPrecioCosto.Enabled = false;
+            textBoxPrecioVentaCompra.Enabled = false;
+            textBoxMargenCompra.ReadOnly = true;
+
+            _ayudaMargen.SetToolTip(labelMargenCompra,
+                "Margen bruto = (precio de venta - costo) / precio de venta × 100.");
+            _ayudaMargen.SetToolTip(textBoxMargenCompra,
+                "El porcentaje de ganancia bruta calculado sobre el precio de venta.");
+        }
+
+        private static bool LeerPrecio(string texto, out decimal precio)
+        {
+            return decimal.TryParse(texto.Trim(), NumberStyles.Number,
+                CultureInfo.CurrentCulture, out precio);
+        }
+
+        private static void NormalizarPrecio(Guna.UI2.WinForms.Guna2TextBox campo)
+        {
+            if (LeerPrecio(campo.Text, out decimal precio) && precio >= 0 &&
+                decimal.Round(precio, 2) == precio)
+                campo.Text = precio.ToString("N2", CultureInfo.CurrentCulture);
+        }
+
+        private void ActualizarMargen()
+        {
+            if (LeerPrecio(textBoxPrecioCosto.Text, out decimal costo) &&
+                LeerPrecio(textBoxPrecioVentaCompra.Text, out decimal venta) && venta > 0)
+            {
+                // Fórmula estándar de margen de contribución comercial
+                decimal margen = ((venta - costo) / venta) * 100m;
+                textBoxMargenCompra.Text = margen.ToString("N2") + "%";
+                textBoxMargenCompra.ForeColor = margen > 0
+                    ? Color.FromArgb(130, 225, 176)
+                    : margen < 0 ? Color.FromArgb(255, 130, 130) : Color.White;
+                decimal utilidad = venta - costo;
+                _ayudaMargen.SetToolTip(textBoxMargenCompra,
+                    $"Ganancia bruta por unidad: $ {utilidad:N2}. Margen bruto: {margen:N2}%.");
+            }
+            else
+            {
+                textBoxMargenCompra.Clear();
+                textBoxMargenCompra.ForeColor = Color.White;
+            }
         }
 
         private void Compras_Load(object? sender, EventArgs e)
@@ -101,6 +157,23 @@ namespace PROYECTO1.CapaPresentacion
             CCantidad.DataPropertyName = "Cantidad";
             CPrecioUnitario.DataPropertyName = "PrecioCosto";
             CSubTotal.DataPropertyName = "SubTotal";
+
+            CPrecioUnitario.HeaderText = "Costo unit.";
+            CSubTotal.HeaderText = "Subtotal";
+
+            var pesos = new[]
+            {
+                ("CidProducto", 65f, 54), ("CNombre", 185f, 130),
+                ("CTalle", 90f, 65), ("CCantidad", 90f, 75),
+                ("CPrecioUnitario", 125f, 105), ("CSubTotal", 135f, 112),
+                ("CQuitar", 75f, 65)
+            };
+            foreach (var (nombre, peso, minimo) in pesos)
+            {
+                DataGridViewColumn col = dataGridViewVentas.Columns[nombre];
+                col.MinimumWidth = minimo;
+                col.FillWeight = peso;
+            }
 
             CPrecioUnitario.DefaultCellStyle.Format = "N2";
             CSubTotal.DefaultCellStyle.Format = "N2";
@@ -160,9 +233,6 @@ namespace PROYECTO1.CapaPresentacion
             CalcularTotalCompra();
         }
 
-        // ==========================================
-        // CONTROL VISUAL Y ESTADO DEL PANEL PRODUCTOS
-        // ==========================================
         private void ActualizarEstadoPanelProductos(bool habilitado)
         {
             Color colorPanelFondo = habilitado ? Color.FromArgb(43, 50, 68) : Color.FromArgb(30, 34, 46);
@@ -202,13 +272,15 @@ namespace PROYECTO1.CapaPresentacion
             textBoxCantidad.DisabledState.ForeColor = Color.FromArgb(100, 110, 130);
 
             buttonAgregar.Enabled = habilitado;
+            labelPrecioCosto.ForeColor = colorLabels;
+            labelPrecioVentaCompra.ForeColor = colorLabels;
+            labelMargenCompra.ForeColor = colorLabels;
+            textBoxPrecioCosto.Enabled = habilitado && _productoSeleccionado != null;
+            textBoxPrecioVentaCompra.Enabled = habilitado && _productoSeleccionado != null;
             buttonAgregar.DisabledState.FillColor = Color.FromArgb(45, 52, 70);
             buttonAgregar.DisabledState.ForeColor = Color.FromArgb(110, 120, 140);
         }
 
-        // ==========================================
-        // BUSCADOR DE PROVEEDORES
-        // ==========================================
         private static string LeerTexto(DataRow dr, params string[] columnas)
         {
             foreach (var col in columnas)
@@ -352,9 +424,6 @@ namespace PROYECTO1.CapaPresentacion
             overlay.Close();
         }
 
-        // ==========================================
-        // BUSCADOR DE PRODUCTOS
-        // ==========================================
         private void CargarProductosDesdeBD()
         {
             try
@@ -372,7 +441,8 @@ namespace PROYECTO1.CapaPresentacion
                         Categoria = dr["categoria"].ToString() ?? "",
                         Talle = dr["talla"].ToString() ?? "Único",
                         Stock = Convert.ToInt32(dr["stock"]),
-                        PrecioCosto = Convert.ToDecimal(dr["precio_costo"])
+                        PrecioCosto = Convert.ToDecimal(dr["precio_costo"]),
+                        PrecioVenta = Convert.ToDecimal(dr["precio_venta"])
                     });
                 }
 
@@ -478,7 +548,11 @@ namespace PROYECTO1.CapaPresentacion
             if (_productoSeleccionado != null)
             {
                 textBoxStock.Text = _productoSeleccionado.Stock.ToString();
+                textBoxPrecioCosto.Enabled = true;
+                textBoxPrecioVentaCompra.Enabled = true;
                 textBoxPrecioCosto.Text = _productoSeleccionado.PrecioCosto.ToString("N2");
+                textBoxPrecioVentaCompra.Text = _productoSeleccionado.PrecioVenta.ToString("N2");
+                ActualizarMargen();
             }
         }
 
@@ -488,6 +562,10 @@ namespace PROYECTO1.CapaPresentacion
             TextBoxBuscadorProducto.Clear();
             textBoxNombreProducto.Clear();
             textBoxPrecioCosto.Clear();
+            textBoxPrecioVentaCompra.Clear();
+            textBoxMargenCompra.Clear();
+            textBoxPrecioCosto.Enabled = false;
+            textBoxPrecioVentaCompra.Enabled = false;
             textBoxStock.Clear();
             comboBoxTalle.Items.Clear();
             textBoxCantidad.Text = "1";
@@ -543,9 +621,6 @@ namespace PROYECTO1.CapaPresentacion
             textBoxCantidad.SelectAll();
         }
 
-        // ==========================================
-        // CARRITO DE COMPRAS
-        // ==========================================
         private void ButtonAgregar_Click(object? sender, EventArgs e)
         {
             if (_productoSeleccionado == null)
@@ -562,18 +637,47 @@ namespace PROYECTO1.CapaPresentacion
                 return;
             }
 
-            if (!decimal.TryParse(textBoxPrecioCosto.Text.Trim(), NumberStyles.Number, CultureInfo.CurrentCulture, out decimal costo) || costo <= 0)
+            if (!LeerPrecio(textBoxPrecioCosto.Text, out decimal costo) || costo <= 0 ||
+                decimal.Round(costo, 2) != costo)
             {
-                MessageBox.Show("Ingrese un precio de costo válido y positivo.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Ingresá un costo positivo con hasta dos decimales.",
+                    "Costo inválido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 textBoxPrecioCosto.Focus();
+                return;
+            }
+            if (!LeerPrecio(textBoxPrecioVentaCompra.Text, out decimal venta) || venta <= 0 ||
+                decimal.Round(venta, 2) != venta)
+            {
+                MessageBox.Show("Ingresá un precio de venta positivo con hasta dos decimales.",
+                    "Venta inválida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                textBoxPrecioVentaCompra.Focus();
+                return;
+            }
+
+            // Nueva validación sugerida: asegurar que la compra sea rentable
+            if (venta <= costo)
+            {
+                MessageBox.Show("El precio de venta debe ser estrictamente mayor al precio de costo.",
+                    "Rentabilidad negativa", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                textBoxPrecioVentaCompra.Focus();
                 return;
             }
 
             var itemExistente = _carrito.FirstOrDefault(c => c.IdProducto == _productoSeleccionado.IdProducto);
             if (itemExistente != null)
             {
+                if (itemExistente.PrecioCosto != costo || itemExistente.PrecioVenta != venta)
+                {
+                    var respuesta = MessageBox.Show(
+                        "Este talle ya está en el pedido con otros precios. " +
+                        "Si continuás, los precios nuevos se usarán para todas sus unidades. ¿Continuar?",
+                        "Actualizar precios del renglón", MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+                    if (respuesta != DialogResult.Yes) return;
+                }
                 itemExistente.Cantidad += cantidad;
                 itemExistente.PrecioCosto = costo;
+                itemExistente.PrecioVenta = venta;
                 _carrito.ResetBindings();
             }
             else
@@ -584,7 +688,8 @@ namespace PROYECTO1.CapaPresentacion
                     Nombre = _productoSeleccionado.Nombre,
                     Talle = _productoSeleccionado.Talle,
                     Cantidad = cantidad,
-                    PrecioCosto = costo
+                    PrecioCosto = costo,
+                    PrecioVenta = venta
                 });
             }
 
@@ -595,7 +700,8 @@ namespace PROYECTO1.CapaPresentacion
 
         private void DataGridViewVentas_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0 && e.RowIndex < _carrito.Count && dataGridViewVentas.Columns[e.ColumnIndex].Name == "CQuitar")
+            if (e.RowIndex >= 0 && e.RowIndex < _carrito.Count && e.ColumnIndex >= 0 &&
+                dataGridViewVentas.Columns[e.ColumnIndex].Name == "CQuitar")
             {
                 _carrito.RemoveAt(e.RowIndex);
                 CalcularTotalCompra();
@@ -639,7 +745,24 @@ namespace PROYECTO1.CapaPresentacion
 
             decimal totalFinal = CalcularTotalCompra();
             int idMetodo = Convert.ToInt32(comboBoxMetodoPago.SelectedValue);
-            int idUsuario = SesionActual.Usuario?.Id ?? 1;
+            if (SesionActual.Usuario == null)
+            {
+                MessageBox.Show("Tu sesión no tiene un usuario válido. Volvé a iniciar sesión.",
+                    "Sesión requerida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            int idUsuario = SesionActual.Usuario.Id;
+
+            // Se elimina la verificación de "margen bruto cero o negativo" antes del DialogResult
+            // porque ya se bloqueó en el ButtonAgregar_Click de acuerdo a la nueva validación.
+
+            if (MessageBox.Show(
+                    $"Total a comprar: $ {totalFinal:N2}\n\n" +
+                    "Al finalizar se sumará el stock y se actualizarán el costo y el precio " +
+                    "de venta de cada talle comprado.\n\n¿Confirmás la compra?",
+                    "Confirmar compra", MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
 
             var compra = new ECompra
             {
@@ -655,7 +778,8 @@ namespace PROYECTO1.CapaPresentacion
                 {
                     IdProducto = item.IdProducto,
                     Cantidad = item.Cantidad,
-                    PrecioCosto = item.PrecioCosto
+                    PrecioCosto = item.PrecioCosto,
+                    PrecioVenta = item.PrecioVenta
                 });
             }
 

@@ -18,7 +18,6 @@ namespace PROYECTO1.CapaPresentacion
             buttonBackUp.Click += ButtonBackUp_Click;
 
             buttonBackUp.Enabled = false;
-            comboBoxBaseDatos.SelectedIndexChanged += (_, __) => HabilitarBackupSiCorresponde();
             textBoxRuta.TextChanged += (_, __) => HabilitarBackupSiCorresponde();
         }
 
@@ -27,16 +26,31 @@ namespace PROYECTO1.CapaPresentacion
             CargarBases();
         }
 
-        // Carga el desplegable con las bases encontradas en el motor SQL
         private void CargarBases()
         {
             try
             {
-                List<string> lista = _lBackup.ObtenerBasesDeDatos();
-                comboBoxBaseDatos.DataSource = lista;
+                // Limpia cualquier item previo
+                comboBoxBaseDatos.Items.Clear();
 
-                if (lista.Count > 0)
-                    comboBoxBaseDatos.SelectedIndex = 0;
+                // Obtenemos la lista real de la base de datos para verificar que "tiendaDB" existe
+                List<string> lista = _lBackup.ObtenerBasesDeDatos();
+
+                if (lista.Contains("tiendaDB"))
+                {
+                    comboBoxBaseDatos.Items.Add("tiendaDB");
+                }
+                else
+                {
+                    // Fallback por si la base no se llama exactamente así en tu entorno
+                    comboBoxBaseDatos.Items.Add("Base de datos no encontrada");
+                }
+
+                // Selecciona el primer item obligatoriamente
+                comboBoxBaseDatos.SelectedIndex = 0;
+
+                // Deshabilita el ComboBox para que el usuario no pueda abrir la lista desplegable ni cambiarlo
+                comboBoxBaseDatos.Enabled = false;
 
                 HabilitarBackupSiCorresponde();
             }
@@ -47,10 +61,9 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        // Abre el cuadro de diálogo para elegir la carpeta y nombre del .bak
         private void ButtonRuta_Click(object sender, EventArgs e)
         {
-            string db = comboBoxBaseDatos.SelectedItem as string ?? "backup";
+            string db = comboBoxBaseDatos.SelectedItem as string ?? "tiendaDB";
 
             using var sfd = new SaveFileDialog
             {
@@ -66,15 +79,14 @@ namespace PROYECTO1.CapaPresentacion
             }
         }
 
-        // Habilita el botón de backup únicamente si hay base seleccionada y ruta elegida
         private void HabilitarBackupSiCorresponde()
         {
             buttonBackUp.Enabled =
                 !string.IsNullOrWhiteSpace(textBoxRuta.Text) &&
-                comboBoxBaseDatos.SelectedItem != null;
+                comboBoxBaseDatos.SelectedItem != null &&
+                comboBoxBaseDatos.SelectedItem.ToString() != "Base de datos no encontrada";
         }
 
-        // Llama a la lógica para ejecutar la copia de seguridad
         private void ButtonBackUp_Click(object sender, EventArgs e)
         {
             string db = comboBoxBaseDatos.SelectedItem?.ToString() ?? string.Empty;

@@ -14,9 +14,9 @@ namespace PROYECTO1.CapaLogica
         private readonly DReporte _dReporte = new();
         private readonly CultureInfo cultura = CultureInfo.GetCultureInfo("es-AR");
 
-        public EReporteKpiHistorico ObtenerKpisHistoricos(int idUsuario)
+        public EReporteKpiHistorico ObtenerKpisHistoricos(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerKpisHistoricos(idUsuario);
+            return _dReporte.ObtenerKpisHistoricos(idUsuario, desde, hasta, tipoCliente, metodoPago);
         }
 
         public EReporteKpiMes ObtenerKpisMes(int idUsuario)
@@ -35,17 +35,28 @@ namespace PROYECTO1.CapaLogica
             return _dReporte.ObtenerKpisMes(idUsuario, inicioActual, finActual, inicioAnterior, finAnterior);
         }
 
-        public List<(DateTime Fecha, decimal Total)> ObtenerGraficoHistorico(int idUsuario)
+        public List<(DateTime Fecha, decimal Total)> ObtenerGraficoHistorico(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var resultado = new List<(DateTime Fecha, decimal Total)>();
-            var datosBD = _dReporte.ObtenerVentasMensualesAgrupadas(idUsuario);
+            var datosBD = _dReporte.ObtenerVentasMensualesAgrupadas(idUsuario, desde, hasta, tipoCliente, metodoPago);
 
             if (datosBD.Count > 0)
             {
-                DateTime mesActual = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-                DateTime iter = datosBD.Keys.Min();
+                DateTime mesInicio = datosBD.Keys.Min();
+                DateTime mesFin;
 
-                while (iter <= mesActual)
+                if (hasta.HasValue)
+                {
+                    mesFin = new DateTime(hasta.Value.Year, hasta.Value.Month, 1);
+                }
+                else
+                {
+                    mesFin = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                }
+
+                DateTime iter = mesInicio;
+
+                while (iter <= mesFin)
                 {
                     decimal totalMes = datosBD.ContainsKey(iter) ? datosBD[iter] : 0m;
                     resultado.Add((iter, totalMes));
@@ -56,129 +67,158 @@ namespace PROYECTO1.CapaLogica
             return resultado;
         }
 
-        public DataTable ObtenerTopCategorias(int idUsuario)
+        public DataTable ObtenerTopCategorias(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerTopCategorias(idUsuario);
+            return _dReporte.ObtenerTopCategorias(idUsuario, desde, hasta, tipoCliente, metodoPago);
         }
 
-        public DataTable ObtenerHistorialVentas(int idUsuario)
+        public DataTable ObtenerHistorialVentas(int idUsuario, DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ListarHistorialVentas(idUsuario);
+            return _dReporte.ListarHistorialVentas(idUsuario, desde, hasta, tipoCliente, metodoPago);
+        }
+
+        private const int AnchoComprobante = 40;
+
+        private static string LineaImporte(string etiqueta, string importe)
+        {
+            string izquierda = " " + etiqueta;
+            int espacios = Math.Max(1, AnchoComprobante - izquierda.Length - importe.Length);
+            return izquierda + new string(' ', espacios) + importe;
+        }
+
+        private string Dinero(decimal valor) => "$ " + valor.ToString("N2", cultura);
+
+        private static void AgregarNombreProducto(StringBuilder sb, string nombre)
+        {
+            nombre = (nombre ?? string.Empty).Trim();
+            if (nombre.Length == 0) nombre = "Sin descripción";
+            const int max = 37;
+            while (nombre.Length > max)
+            {
+                int corte = nombre.LastIndexOf(' ', max);
+                if (corte <= 0) corte = max;
+                sb.AppendLine(" " + nombre.Substring(0, corte).Trim());
+                nombre = nombre.Substring(corte).TrimStart();
+            }
+            sb.AppendLine(" " + nombre);
         }
 
         public string GenerarTextoComprobante(int idVenta)
         {
-            DataTable dtCabecera = _dReporte.ObtenerCabeceraComprobante(idVenta);
-            DataTable dtDetalle = _dReporte.ObtenerDetalleComprobante(idVenta);
+            DataTable cabecera = _dReporte.ObtenerCabeceraComprobante(idVenta);
+            DataTable detalle = _dReporte.ObtenerDetalleComprobante(idVenta);
+            if (cabecera.Rows.Count == 0) return string.Empty;
 
-            if (dtCabecera.Rows.Count == 0) return string.Empty;
-
-            DataRow rCab = dtCabecera.Rows[0];
-            DateTime fecha = Convert.ToDateTime(rCab["fecha"]);
-            string cliente = rCab["Cliente"].ToString()!;
-            string dni = rCab["DNI"].ToString()!;
-            string vendedor = rCab["Vendedor"].ToString()!;
-            string metodo = rCab["metodo_pago"].ToString()!;
-            int cuotas = Convert.ToInt32(rCab["cuotas"]);
-            decimal recargo = Convert.ToDecimal(rCab["recargo"]);
-            decimal totalFinal = Convert.ToDecimal(rCab["total"]);
+            DataRow r = cabecera.Rows[0];
+            DateTime fecha = Convert.ToDateTime(r["fecha"]);
+            string cliente = Convert.ToString(r["Cliente"]) ?? "Consumidor Final";
+            string dni = Convert.ToString(r["DNI"]) ?? "";
+            if (string.IsNullOrWhiteSpace(dni) || dni == "-") dni = "00000000";
+            string vendedor = Convert.ToString(r["Vendedor"]) ?? "";
+            string metodo = Convert.ToString(r["metodo_pago"]) ?? "";
+            int cuotas = Convert.ToInt32(r["cuotas"]);
+            decimal ajuste = Convert.ToDecimal(r["recargo"]);
+            decimal total = Convert.ToDecimal(r["total"]);
+            string separador = new string('-', AnchoComprobante);
+            string borde = new string('=', AnchoComprobante);
 
             var sb = new StringBuilder();
-            sb.AppendLine("==========================================");
-            sb.AppendLine("             TIENDA DE ROPA               ");
-            sb.AppendLine("          COMPROBANTE DE VENTA            ");
-            sb.AppendLine("==========================================");
-            sb.AppendLine($"Factura N°: #{idVenta:D6}");
-            sb.AppendLine($"Fecha:      {fecha:dd/MM/yyyy HH:mm}");
-            sb.AppendLine($"Vendedor:   {vendedor}");
-            sb.AppendLine($"Cliente:    {cliente}");
-            sb.AppendLine($"DNI:        {dni}");
-            sb.AppendLine($"Pago:       {metodo}" + (cuotas > 1 ? $" ({cuotas} cuotas)" : ""));
-            sb.AppendLine("------------------------------------------");
-            sb.AppendLine("Cant. Descripcion            P.Unit.  Subt");
-            sb.AppendLine("------------------------------------------");
+            sb.AppendLine(borde);
+            sb.AppendLine("             TIENDA DE ROPA");
+            sb.AppendLine("          COMPROBANTE DE VENTA");
+            sb.AppendLine(borde);
+            sb.AppendLine($" Venta N°: #{idVenta:D6}");
+            sb.AppendLine($" Fecha:    {fecha:dd/MM/yyyy HH:mm:ss}");
+            sb.AppendLine($" Vendedor: {vendedor}");
+            sb.AppendLine(separador);
+            sb.AppendLine($" Cliente:  {cliente}");
+            sb.AppendLine($" DNI:      {dni}");
+            sb.AppendLine(separador);
+            sb.AppendLine("             DETALLE DE VENTA");
+            sb.AppendLine(separador);
 
-            decimal subtotalAcumulado = 0;
-            foreach (DataRow rDet in dtDetalle.Rows)
+            decimal subtotalGeneral = 0m;
+            foreach (DataRow item in detalle.Rows)
             {
-                string nombre = rDet["nombre"].ToString()!;
-                string talle = rDet["talla"].ToString()!;
-                int cant = Convert.ToInt32(rDet["cantidad"]);
-                decimal unitario = Convert.ToDecimal(rDet["precio_unitario"]);
-                decimal subtotal = Convert.ToDecimal(rDet["subtotal"]);
-                subtotalAcumulado += subtotal;
-
-                string itemDesc = $"{nombre} ({talle})";
-                if (itemDesc.Length > 20) itemDesc = itemDesc.Substring(0, 17) + "...";
-
-                sb.AppendLine($"{cant,-3} {itemDesc,-22} {unitario,7:N0} {subtotal,7:N0}");
+                AgregarNombreProducto(sb, Convert.ToString(item["nombre"]) ?? "");
+                string talle = Convert.ToString(item["talla"]) ?? "Único";
+                int cantidad = Convert.ToInt32(item["cantidad"]);
+                decimal unitario = Convert.ToDecimal(item["precio_unitario"]);
+                decimal subtotal = Convert.ToDecimal(item["subtotal"]);
+                subtotalGeneral += subtotal;
+                sb.AppendLine($" Talle: {talle}    Cantidad: {cantidad}");
+                sb.AppendLine(LineaImporte("Precio unitario:", Dinero(unitario)));
+                sb.AppendLine(LineaImporte("Subtotal artículo:", Dinero(subtotal)));
+                sb.AppendLine(separador);
             }
 
-            sb.AppendLine("------------------------------------------");
-            if (recargo > 0)
+            sb.AppendLine($" Método de pago: {metodo}" + (cuotas > 1 ? $" ({cuotas} cuotas)" : string.Empty));
+            sb.AppendLine(separador);
+            sb.AppendLine(LineaImporte("Subtotal:", Dinero(subtotalGeneral)));
+            if (ajuste < 0)
             {
-                sb.AppendLine($"Subtotal:                 $ {subtotalAcumulado.ToString("N2", cultura)}");
-                sb.AppendLine($"Recargo ({cuotas} ctas):        $ {recargo.ToString("N2", cultura)}");
-                sb.AppendLine("------------------------------------------");
+                decimal porcentaje = subtotalGeneral > 0m ? -ajuste / subtotalGeneral * 100m : 0m;
+                sb.AppendLine(LineaImporte($"Descuento ({porcentaje:0.#}%):", "-" + Dinero(-ajuste)));
             }
-            sb.AppendLine($"TOTAL FINAL:              $ {totalFinal.ToString("N2", cultura)}");
-            sb.AppendLine("==========================================");
-            sb.AppendLine("        ¡GRACIAS POR SU COMPRA!           ");
-            sb.AppendLine("==========================================");
-
+            else if (ajuste > 0)
+            {
+                sb.AppendLine(LineaImporte("Recargo:", "+" + Dinero(ajuste)));
+            }
+            sb.AppendLine(LineaImporte("TOTAL A PAGAR:", Dinero(total)));
+            sb.AppendLine(borde);
+            sb.AppendLine("        ¡GRACIAS POR SU COMPRA!");
+            sb.AppendLine(borde);
             return sb.ToString();
         }
 
-        // ==========================================
-        // COMPROBANTE DE COMPRA A PROVEEDOR
-        // ==========================================
         public string GenerarTextoComprobanteCompra(int idCompra)
         {
-            DataTable dtCabecera = _dReporte.ObtenerCabeceraComprobanteCompra(idCompra);
-            DataTable dtDetalle = _dReporte.ObtenerDetalleComprobanteCompra(idCompra);
+            DataTable cabecera = _dReporte.ObtenerCabeceraComprobanteCompra(idCompra);
+            DataTable detalle = _dReporte.ObtenerDetalleComprobanteCompra(idCompra);
+            if (cabecera.Rows.Count == 0) return string.Empty;
 
-            if (dtCabecera.Rows.Count == 0) return string.Empty;
-
-            DataRow rCab = dtCabecera.Rows[0];
-            DateTime fecha = Convert.ToDateTime(rCab["fecha"]);
-            string proveedor = rCab["Proveedor"].ToString()!;
-            string cuit = rCab["CUIT"].ToString()!;
-            string comprador = rCab["Comprador"].ToString()!;
-            string metodo = rCab["metodo_pago"].ToString()!;
-            decimal totalFinal = Convert.ToDecimal(rCab["total"]);
-
+            DataRow r = cabecera.Rows[0];
+            DateTime fecha = Convert.ToDateTime(r["fecha"]);
+            string proveedor = Convert.ToString(r["Proveedor"]) ?? "";
+            string cuit = Convert.ToString(r["CUIT"]) ?? "";
+            string comprador = Convert.ToString(r["Comprador"]) ?? "";
+            string metodo = Convert.ToString(r["metodo_pago"]) ?? "";
+            decimal total = Convert.ToDecimal(r["total"]);
+            string separador = new string('-', AnchoComprobante);
+            string borde = new string('=', AnchoComprobante);
             var sb = new StringBuilder();
-            sb.AppendLine("==========================================");
-            sb.AppendLine("             TIENDA DE ROPA               ");
-            sb.AppendLine("         COMPROBANTE DE COMPRA            ");
-            sb.AppendLine("==========================================");
-            sb.AppendLine($"Orden Compra: #{idCompra:D6}");
-            sb.AppendLine($"Fecha:        {fecha:dd/MM/yyyy HH:mm}");
-            sb.AppendLine($"Comprador:    {comprador}");
-            sb.AppendLine($"Proveedor:    {proveedor}");
-            sb.AppendLine($"CUIT:         {cuit}");
-            sb.AppendLine($"Pago:         {metodo}");
-            sb.AppendLine("------------------------------------------");
-            sb.AppendLine("Cant. Descripcion            P.Costo  Subt");
-            sb.AppendLine("------------------------------------------");
+            sb.AppendLine(borde);
+            sb.AppendLine("             TIENDA DE ROPA");
+            sb.AppendLine("          COMPROBANTE DE COMPRA");
+            sb.AppendLine(borde);
+            sb.AppendLine($" Compra N°: #{idCompra:D6}");
+            sb.AppendLine($" Fecha:     {fecha:dd/MM/yyyy HH:mm:ss}");
+            sb.AppendLine($" Comprador: {comprador}");
+            sb.AppendLine(separador);
+            sb.AppendLine($" Proveedor: {proveedor}");
+            sb.AppendLine($" CUIT:      {cuit}");
+            sb.AppendLine($" Pago:      {metodo}");
+            sb.AppendLine(separador);
+            sb.AppendLine("            DETALLE DE COMPRA");
+            sb.AppendLine(separador);
 
-            foreach (DataRow rDet in dtDetalle.Rows)
+            decimal subtotalGeneral = 0m;
+            foreach (DataRow item in detalle.Rows)
             {
-                string nombre = rDet["nombre"].ToString()!;
-                string talle = rDet["talla"].ToString()!;
-                int cant = Convert.ToInt32(rDet["cantidad"]);
-                decimal costo = Convert.ToDecimal(rDet["precio_costo"]);
-                decimal subtotal = Convert.ToDecimal(rDet["subtotal"]);
-
-                string itemDesc = $"{nombre} ({talle})";
-                if (itemDesc.Length > 20) itemDesc = itemDesc.Substring(0, 17) + "...";
-
-                sb.AppendLine($"{cant,-3} {itemDesc,-22} {costo,7:N0} {subtotal,7:N0}");
+                AgregarNombreProducto(sb, Convert.ToString(item["nombre"]) ?? "");
+                string talle = Convert.ToString(item["talla"]) ?? "Único";
+                int cantidad = Convert.ToInt32(item["cantidad"]);
+                decimal unitario = Convert.ToDecimal(item["precio_costo"]);
+                decimal subtotal = Convert.ToDecimal(item["subtotal"]);
+                subtotalGeneral += subtotal;
+                sb.AppendLine($" Talle: {talle}    Cantidad: {cantidad}");
+                sb.AppendLine(LineaImporte("Costo unitario:", Dinero(unitario)));
+                sb.AppendLine(LineaImporte("Subtotal artículo:", Dinero(subtotal)));
+                sb.AppendLine(separador);
             }
-
-            sb.AppendLine("------------------------------------------");
-            sb.AppendLine($"TOTAL FINAL:              $ {totalFinal.ToString("N2", cultura)}");
-
+            sb.AppendLine(LineaImporte("Subtotal:", Dinero(subtotalGeneral)));
+            sb.AppendLine(LineaImporte("TOTAL COMPRA:", Dinero(total)));
+            sb.AppendLine(borde);
             return sb.ToString();
         }
 
@@ -200,9 +240,10 @@ namespace PROYECTO1.CapaLogica
         public DataTable ObtenerTodasLasCompras()
             => _dReporte.ObtenerTodasLasCompras();
 
-        public EReporteKpiHistoricoGerente ObtenerKpisHistoricosGerente()
+        // ---------------- METODOS GERENTE MODIFICADOS PARA SOPORTAR FILTROS -------------
+        public EReporteKpiHistoricoGerente ObtenerKpisHistoricosGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerKpisHistoricosGerente();
+            return _dReporte.ObtenerKpisHistoricosGerente(desde, hasta, tipoCliente, metodoPago);
         }
 
         public EReporteKpiMesGerente ObtenerKpisMesGerente()
@@ -221,17 +262,19 @@ namespace PROYECTO1.CapaLogica
             return _dReporte.ObtenerKpisMesGerente(inicioActual, finActual, inicioAnterior, finAnterior);
         }
 
-        public List<(DateTime Fecha, decimal Total)> ObtenerGraficoHistoricoGerente()
+        public List<(DateTime Fecha, decimal Total)> ObtenerGraficoHistoricoGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var resultado = new List<(DateTime Fecha, decimal Total)>();
-            var datosBD = _dReporte.ObtenerVentasMensualesAgrupadasGerente();
+            var datosBD = _dReporte.ObtenerVentasMensualesAgrupadasGerente(desde, hasta, tipoCliente, metodoPago);
 
             if (datosBD.Count > 0)
             {
-                DateTime mesActual = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-                DateTime iter = datosBD.Keys.Min();
+                DateTime mesInicio = datosBD.Keys.Min();
+                DateTime mesFin = hasta.HasValue ? new DateTime(hasta.Value.Year, hasta.Value.Month, 1) : new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
 
-                while (iter <= mesActual)
+                DateTime iter = mesInicio;
+
+                while (iter <= mesFin)
                 {
                     decimal totalMes = datosBD.ContainsKey(iter) ? datosBD[iter] : 0m;
                     resultado.Add((iter, totalMes));
@@ -242,36 +285,37 @@ namespace PROYECTO1.CapaLogica
             return resultado;
         }
 
-        public DataTable ObtenerTopCategoriasGerente()
+        public DataTable ObtenerTopCategoriasGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerTopCategoriasGerente();
+            return _dReporte.ObtenerTopCategoriasGerente(desde, hasta, tipoCliente, metodoPago);
         }
 
-        public DataTable ObtenerTop10ProductosGerente()
+        public DataTable ObtenerTop10ProductosGerente(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerTop10ProductosGerente();
+            return _dReporte.ObtenerTop10ProductosGerente(desde, hasta, tipoCliente, metodoPago);
         }
 
-        public EReporteKpiGerenteClientes ObtenerKpisGerenteClientes()
+        public EReporteKpiGerenteClientes ObtenerKpisGerenteClientes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             DateTime ahora = DateTime.Now;
             DateTime inicioMes = new DateTime(ahora.Year, ahora.Month, 1);
             DateTime finMes = ahora;
 
-            return _dReporte.ObtenerKpisGerenteClientes(inicioMes, finMes);
+            return _dReporte.ObtenerKpisGerenteClientes(inicioMes, finMes, desde, hasta, tipoCliente, metodoPago);
         }
 
-        public List<(DateTime Fecha, int Cantidad)> ObtenerGraficoNuevosClientes()
+        public List<(DateTime Fecha, int Cantidad)> ObtenerGraficoNuevosClientes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             var resultado = new List<(DateTime Fecha, int Cantidad)>();
-            var datosBD = _dReporte.ObtenerNuevosClientesMensuales();
+            var datosBD = _dReporte.ObtenerNuevosClientesMensuales(desde, hasta, tipoCliente, metodoPago);
 
             if (datosBD.Count > 0)
             {
-                DateTime mesActual = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-                DateTime iter = datosBD.Keys.Min();
+                DateTime mesInicio = datosBD.Keys.Min();
+                DateTime mesFin = hasta.HasValue ? new DateTime(hasta.Value.Year, hasta.Value.Month, 1) : new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
 
-                while (iter <= mesActual)
+                DateTime iter = mesInicio;
+                while (iter <= mesFin)
                 {
                     int cant = datosBD.ContainsKey(iter) ? datosBD[iter] : 0;
                     resultado.Add((iter, cant));
@@ -282,38 +326,38 @@ namespace PROYECTO1.CapaLogica
             return resultado;
         }
 
-        public DataTable ObtenerMetodosPagoPorOrdenes()
+        public DataTable ObtenerMetodosPagoPorOrdenes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerMetodosPagoPorOrdenes();
+            return _dReporte.ObtenerMetodosPagoPorOrdenes(desde, hasta, tipoCliente, metodoPago);
         }
 
-        public DataTable ObtenerTop10Clientes()
+        public DataTable ObtenerTop10Clientes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerTop10Clientes();
+            return _dReporte.ObtenerTop10Clientes(desde, hasta, tipoCliente, metodoPago);
         }
 
-        public EReporteKpiGerenteVendedores ObtenerKpisGerenteVendedores()
+        public EReporteKpiGerenteVendedores ObtenerKpisGerenteVendedores(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
             DateTime ahora = DateTime.Now;
             DateTime inicioMes = new DateTime(ahora.Year, ahora.Month, 1);
             DateTime finMes = ahora;
 
-            return _dReporte.ObtenerKpisGerenteVendedores(inicioMes, finMes);
+            return _dReporte.ObtenerKpisGerenteVendedores(inicioMes, finMes, desde, hasta, tipoCliente, metodoPago);
         }
 
-        public DataTable ObtenerVentasPorVendedorDonut()
+        public DataTable ObtenerVentasPorVendedorDonut(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerVentasPorVendedorDonut();
+            return _dReporte.ObtenerVentasPorVendedorDonut(desde, hasta, tipoCliente, metodoPago);
         }
 
-        public DataTable ObtenerTop6VendedoresPorOrdenes()
+        public DataTable ObtenerTop6VendedoresPorOrdenes(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerTop6VendedoresPorOrdenes();
+            return _dReporte.ObtenerTop6VendedoresPorOrdenes(desde, hasta, tipoCliente, metodoPago);
         }
 
-        public DataTable ObtenerTablaRendimientoVendedores()
+        public DataTable ObtenerTablaRendimientoVendedores(DateTime? desde = null, DateTime? hasta = null, string tipoCliente = "Todos", string metodoPago = "Todos")
         {
-            return _dReporte.ObtenerTablaRendimientoVendedores();
+            return _dReporte.ObtenerTablaRendimientoVendedores(desde, hasta, tipoCliente, metodoPago);
         }
     }
 }

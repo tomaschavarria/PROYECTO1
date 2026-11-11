@@ -15,6 +15,34 @@ namespace PROYECTO1.CapaPresentacion
     {
         private readonly LProducto _lProducto = new();
         private int? _idProductoOriginal = null;
+        private bool _modoAgregarTalle;
+        private string? _talleOriginalEdicion;
+        private int? _categoriaOriginalEdicion;
+        private readonly HashSet<string> _tallesSeleccionados = new(StringComparer.OrdinalIgnoreCase);
+        private readonly FlowLayoutPanel _panelTalles = new();
+        private readonly Label _avisoSeleccionCategoria = new();
+        private readonly Guna2Button _talleFijoEdicion = new();
+        private int? _idProductoBaseAgregarTalle;
+        private Guna2Button? _btnNuevaCategoria;
+
+        // Mapeo por nombre: los ID pueden variar entre instalaciones.
+        // Para habilitar categorías nuevas, agregar su nombre y talles aquí.
+        private static string[] TallesPorCategoria(string categoria)
+        {
+            switch (categoria.Trim().ToLowerInvariant())
+            {
+                case "remeras":
+                case "buzos":
+                case "camperas":
+                case "camisas":
+                    return new[] { "XS", "S", "M", "L", "XL", "XXL" };
+                case "pantalones":
+                case "bermudas":
+                    return new[] { "38", "40", "42", "44", "46", "48", "50" };
+                default:
+                    return Array.Empty<string>();
+            }
+        }
 
         private class ProveedorItem
         {
@@ -38,21 +66,47 @@ namespace PROYECTO1.CapaPresentacion
             CargarCategorias();
             ConfigurarBuscadorProveedor();
             ConfigurarBotonNuevaCategoria();
+            ConfigurarSelectorTalles();
             ConfigurarEventos();
+            ActualizarSelectorTalles();
             ModalHelper.ConfigurarTransparencia(this);
         }
 
-        public FormRegistrarProducto(int idProducto)
+        public FormRegistrarProducto(int idProducto) : this(idProducto, false) { }
+
+        // agregarTalle=true: copia los datos del producto indicado y solo permite
+        // escoger talles que todavía no existen (incluidos los inactivos).
+        public FormRegistrarProducto(int idProducto, bool agregarTalle) : this()
         {
-            InitializeComponent();
-            ConfigurarStockInicial();
-            CargarCategorias();
-            ConfigurarBuscadorProveedor();
-            ConfigurarBotonNuevaCategoria();
-            ConfigurarEventos();
-            _idProductoOriginal = idProducto;
+            _modoAgregarTalle = agregarTalle;
+            if (agregarTalle) _idProductoBaseAgregarTalle = idProducto;
+            if (!agregarTalle)
+                _idProductoOriginal = idProducto;
+
             CargarDatosProducto(idProducto);
-            ModalHelper.ConfigurarTransparencia(this);
+            ActualizarSelectorTalles();
+
+            if (agregarTalle)
+            {
+                // En este modo solo se pueden pulsar los talles nuevos.
+                foreach (Control campo in new Control[] { textBoxNombre, textBoxDescripcion,
+                    textBoxProveedor, comboBoxCategoria, textBoxCosto, textBoxPrecioVenta,
+                    textBoxStock })
+                {
+                    campo.Enabled = false;
+                    campo.TabStop = false;
+                }
+                textBoxStock.Text = "0";
+                btnTituloProducto2.Text = "AGREGAR TALLE";
+                buttonLimpiar.Visible = false;
+                if (_btnNuevaCategoria != null) _btnNuevaCategoria.Visible = false;
+            }
+            else
+            {
+                btnTituloProducto2.Text = "EDITAR PRODUCTO";
+                buttonLimpiar.Visible = false;
+                if (_btnNuevaCategoria != null) _btnNuevaCategoria.Visible = false;
+            }
         }
 
         private void ConfigurarStockInicial()
@@ -61,9 +115,167 @@ namespace PROYECTO1.CapaPresentacion
             textBoxStock.Text = "0";
         }
 
+        private void ConfigurarSelectorTalles()
+        {
+            // Alineado con Nombre, Categoría y Descripción (x = 52).
+            lblTalle.Text = "Talles";
+            lblTalle.Location = new Point(52, 451);
+
+            _panelTalles.Location = new Point(49, 479); // +3 de margen del botón = 52.
+            _panelTalles.Size = new Size(guna2Panel4.ClientSize.Width - 66, 44);
+            _panelTalles.BackColor = Color.Transparent;
+            _panelTalles.WrapContents = false;
+            _panelTalles.AutoScroll = true;
+            guna2Panel4.Controls.Add(_panelTalles);
+
+            // CORRECCIÓN: Coordenada Y subida a 485 para que quede pegado a "Talles"
+            _avisoSeleccionCategoria.AutoSize = true;
+            _avisoSeleccionCategoria.Location = new Point(52, 485);
+            _avisoSeleccionCategoria.ForeColor = Color.FromArgb(191, 199, 218);
+            _avisoSeleccionCategoria.BackColor = Color.Transparent;
+            _avisoSeleccionCategoria.Font = new Font("Segoe UI", 9F);
+            _avisoSeleccionCategoria.Text = "Seleccioná una categoría para ver los talles disponibles.";
+            guna2Panel4.Controls.Add(_avisoSeleccionCategoria);
+
+            // Editar un registro no cambia su talle: es una variante identificada por su ID.
+            _talleFijoEdicion.Name = "talleFijoEdicion";
+            _talleFijoEdicion.Location = new Point(52, 479);
+            _talleFijoEdicion.Size = new Size(72, 36);
+            _talleFijoEdicion.BorderRadius = 12;
+            _talleFijoEdicion.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            _talleFijoEdicion.Enabled = false;
+            _talleFijoEdicion.DisabledState.FillColor = Color.FromArgb(156, 160, 169);
+            _talleFijoEdicion.DisabledState.ForeColor = Color.FromArgb(78, 84, 96);
+            _talleFijoEdicion.Visible = false;
+            guna2Panel4.Controls.Add(_talleFijoEdicion);
+        }
+
+        private void ActualizarSelectorTalles(bool limpiarSeleccion = false)
+        {
+            if (limpiarSeleccion) _tallesSeleccionados.Clear();
+
+            bool edicion = _idProductoOriginal.HasValue && !_modoAgregarTalle;
+            _avisoSeleccionCategoria.Visible = !edicion && !_modoAgregarTalle &&
+                comboBoxCategoria.SelectedIndex < 0;
+            _panelTalles.Visible = !edicion;
+            _talleFijoEdicion.Visible = edicion;
+            if (edicion)
+            {
+                _talleFijoEdicion.Text = _talleOriginalEdicion ?? "Único";
+                return;
+            }
+
+            var talles = TallesPorCategoria(comboBoxCategoria.Text);
+            _panelTalles.SuspendLayout();
+            _panelTalles.Controls.Clear();
+
+            if (talles.Length == 0)
+            {
+                _panelTalles.ResumeLayout();
+                return;
+            }
+
+            HashSet<string> existentes = new(StringComparer.OrdinalIgnoreCase);
+            if (_idProveedorSeleccionado is int idProveedor && !string.IsNullOrWhiteSpace(textBoxNombre.Text))
+            {
+                try
+                {
+                    existentes = new HashSet<string>(
+                        _lProducto.ObtenerTallesRegistrados(textBoxNombre.Text.Trim(), idProveedor),
+                        StringComparer.OrdinalIgnoreCase);
+                }
+                catch (Exception ex)
+                {
+                    _panelTalles.ResumeLayout();
+                    MessageBox.Show("No se pudieron consultar los talles registrados: " + ex.Message,
+                        "Error de consulta", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+
+            foreach (var talle in talles)
+            {
+                bool yaExiste = existentes.Contains(talle);
+                if (yaExiste) _tallesSeleccionados.Remove(talle);
+
+                var boton = new Guna2Button
+                {
+                    Text = yaExiste ? talle + " ✓" : talle,
+                    Tag = talle,
+                    Width = 68,
+                    Height = 36,
+                    Margin = new Padding(3, 1, 3, 1),
+                    BorderRadius = 12,
+                    BorderThickness = 1,
+                    BorderColor = Color.FromArgb(109, 124, 163),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Cursor = yaExiste ? Cursors.Default : Cursors.Hand,
+                    Enabled = !yaExiste
+                };
+                boton.DisabledState.FillColor = Color.FromArgb(156, 160, 169);
+                boton.DisabledState.ForeColor = Color.FromArgb(78, 84, 96);
+                boton.Click += (_, __) =>
+                {
+                    if (!_tallesSeleccionados.Add(talle)) _tallesSeleccionados.Remove(talle);
+                    PintarTalle(boton, _tallesSeleccionados.Contains(talle));
+                };
+                PintarTalle(boton, _tallesSeleccionados.Contains(talle) && !yaExiste);
+                _panelTalles.Controls.Add(boton);
+            }
+            _panelTalles.ResumeLayout();
+        }
+
+        // No reconstruir botones cuando un TextBox pierde el foco: si el usuario
+        // hace clic en un talle, recrearlos durante Leave perdería ese clic.
+        private void RefrescarDisponibilidadTalles()
+        {
+            if (_modoAgregarTalle || _idProductoOriginal.HasValue) return;
+            HashSet<string> existentes = new(StringComparer.OrdinalIgnoreCase);
+            if (_idProveedorSeleccionado is int idProveedor && !string.IsNullOrWhiteSpace(textBoxNombre.Text))
+            {
+                try
+                {
+                    existentes = new HashSet<string>(
+                        _lProducto.ObtenerTallesRegistrados(textBoxNombre.Text.Trim(), idProveedor),
+                        StringComparer.OrdinalIgnoreCase);
+                }
+                catch (Exception ex)
+                {
+                    // Ante una falla de consulta, no permitir agregar talles a ciegas.
+                    foreach (var b in _panelTalles.Controls.OfType<Guna2Button>())
+                        b.Enabled = false;
+                    MessageBox.Show("No se pudieron consultar los talles registrados: " + ex.Message,
+                        "Error de consulta", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+
+            foreach (var boton in _panelTalles.Controls.OfType<Guna2Button>())
+            {
+                string talle = (string)boton.Tag;
+                bool yaExiste = existentes.Contains(talle);
+                if (yaExiste) _tallesSeleccionados.Remove(talle);
+                boton.Enabled = !yaExiste;
+                boton.Cursor = yaExiste ? Cursors.Default : Cursors.Hand;
+                boton.Text = yaExiste ? talle + " ✓" : talle;
+                PintarTalle(boton, _tallesSeleccionados.Contains(talle));
+            }
+        }
+
+        private static void PintarTalle(Guna2Button boton, bool seleccionado)
+        {
+            // Claro = disponible; oscuro = elegido. Gris = ya registrado (DisabledState).
+            boton.FillColor = seleccionado
+                ? Color.FromArgb(58, 65, 84)
+                : Color.FromArgb(109, 124, 163);
+            boton.HoverState.FillColor = seleccionado
+                ? Color.FromArgb(58, 65, 84)
+                : Color.FromArgb(125, 140, 177);
+            boton.ForeColor = Color.White;
+        }
+
         private void ConfigurarBotonNuevaCategoria()
         {
-            comboBoxCantidad.Width = 142;
 
             var btnNuevaCat = new Guna2Button
             {
@@ -71,7 +283,7 @@ namespace PROYECTO1.CapaPresentacion
                 Font = new Font("Segoe UI", 13F, FontStyle.Bold),
                 FillColor = Color.FromArgb(109, 124, 163),
                 ForeColor = Color.White,
-                Location = new Point(comboBoxCantidad.Right + 8, comboBoxCantidad.Top),
+                Location = new Point(comboBoxCategoria.Right + 8, comboBoxCategoria.Top),
                 Size = new Size(36, 36),
                 BorderRadius = 18,
                 Cursor = Cursors.Hand,
@@ -83,6 +295,7 @@ namespace PROYECTO1.CapaPresentacion
 
             btnNuevaCat.HoverState.FillColor = Color.FromArgb(130, 145, 185);
             btnNuevaCat.Click += (_, __) => AgregarNuevaCategoria();
+            _btnNuevaCategoria = btnNuevaCat;
 
             guna2Panel4.Controls.Add(btnNuevaCat);
             btnNuevaCat.BringToFront();
@@ -96,8 +309,12 @@ namespace PROYECTO1.CapaPresentacion
             if (_lProducto.RegistrarCategoria(nuevaCat, out int idGenerado, out string error))
             {
                 CargarCategorias();
-                comboBoxCantidad.SelectedValue = idGenerado;
-                RestaurarBordeCombo(comboBoxCantidad);
+                comboBoxCategoria.SelectedValue = idGenerado;
+                RestaurarBordeCombo(comboBoxCategoria);
+                if (TallesPorCategoria(nuevaCat).Length == 0)
+                    MessageBox.Show("La categoría fue creada, pero todavía no tiene talles configurados. " +
+                        "Para registrar productos de esta categoría, agregá su mapeo en TallesPorCategoria().",
+                        "Configuración pendiente", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
@@ -239,15 +456,23 @@ namespace PROYECTO1.CapaPresentacion
         {
             buttonCancelar.Click += (_, __) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
             textBoxProveedor.KeyDown += TextBoxProveedor_KeyDown;
-            textBoxProveedor.Leave += (_, __) => ValidarYFijarProveedor();
+            textBoxProveedor.Leave += (_, __) =>
+            {
+                ValidarYFijarProveedor();
+                RefrescarDisponibilidadTalles();
+            };
 
             textBoxNombre.TextChanged += (_, __) => RestaurarBorde(textBoxNombre);
             textBoxDescripcion.TextChanged += (_, __) => RestaurarBorde(textBoxDescripcion);
             textBoxPrecioVenta.TextChanged += (_, __) => RestaurarBorde(textBoxPrecioVenta);
             textBoxCosto.TextChanged += (_, __) => RestaurarBorde(textBoxCosto);
-            textBoxTalle.TextChanged += (_, __) => RestaurarBorde(textBoxTalle);
             textBoxProveedor.TextChanged += (_, __) => RestaurarBorde(textBoxProveedor);
-            comboBoxCantidad.SelectedIndexChanged += (_, __) => RestaurarBordeCombo(comboBoxCantidad);
+            textBoxNombre.Leave += (_, __) => RefrescarDisponibilidadTalles();
+            comboBoxCategoria.SelectedIndexChanged += (_, __) =>
+            {
+                RestaurarBordeCombo(comboBoxCategoria);
+                ActualizarSelectorTalles(limpiarSeleccion: true);
+            };
         }
 
         private void RestaurarBorde(Guna2TextBox campo)
@@ -282,10 +507,10 @@ namespace PROYECTO1.CapaPresentacion
 
         private void CargarCategorias()
         {
-            comboBoxCantidad.DataSource = _lProducto.ObtenerCategorias();
-            comboBoxCantidad.DisplayMember = "nombre";
-            comboBoxCantidad.ValueMember = "id_categoria";
-            comboBoxCantidad.SelectedIndex = -1;
+            comboBoxCategoria.DataSource = _lProducto.ObtenerCategorias();
+            comboBoxCategoria.DisplayMember = "nombre";
+            comboBoxCategoria.ValueMember = "id_categoria";
+            comboBoxCategoria.SelectedIndex = -1;
         }
 
         private void ConfigurarBuscadorProveedor()
@@ -373,9 +598,7 @@ namespace PROYECTO1.CapaPresentacion
             var cul = CultureInfo.CurrentCulture;
             textBoxPrecioVenta.Text = prod.PrecioVenta.ToString("N2", cul);
             textBoxCosto.Text = prod.PrecioCosto.ToString("N2", cul);
-            textBoxTalle.Text = prod.Talle ?? string.Empty;
-
-            comboBoxCantidad.SelectedValue = prod.IdCategoria;
+            comboBoxCategoria.SelectedValue = prod.IdCategoria;
 
             var provActual = _listaProveedores.FirstOrDefault(p => p.IdProveedor == prod.IdProveedor);
             if (provActual == null)
@@ -400,7 +623,13 @@ namespace PROYECTO1.CapaPresentacion
                 textBoxProveedor.Text = provActual.Display;
             }
 
-            btnTituloProducto2.Text = "EDITAR PRODUCTO";
+            if (!_modoAgregarTalle)
+            {
+                // El talle existente es fijo: nunca se ofrecen talles inexistentes.
+                _talleOriginalEdicion = prod.Talle ?? "Único";
+                _categoriaOriginalEdicion = prod.IdCategoria;
+                _talleFijoEdicion.Text = _talleOriginalEdicion;
+            }
         }
 
         private void ButtonGuardar_Click(object sender, EventArgs e)
@@ -408,147 +637,191 @@ namespace PROYECTO1.CapaPresentacion
             ValidarYFijarProveedor();
 
             Control? primerInvalido = null;
-            var camposTexto = new List<Guna2TextBox>
-            {
-                textBoxNombre,
-                textBoxDescripcion,
-                textBoxTalle,
-                textBoxPrecioVenta,
-                textBoxCosto
-            };
-
-            foreach (var campo in camposTexto)
+            var obligatorios = new[] { textBoxNombre, textBoxPrecioVenta, textBoxCosto };
+            foreach (var campo in obligatorios)
             {
                 if (string.IsNullOrWhiteSpace(campo.Text))
                 {
                     MarcarCampoInvalido(campo);
                     primerInvalido ??= campo;
                 }
-                else
-                {
-                    RestaurarBorde(campo);
-                }
+                else RestaurarBorde(campo);
             }
 
-            if (comboBoxCantidad.SelectedIndex == -1)
+            if (comboBoxCategoria.SelectedIndex < 0)
             {
-                MarcarComboInvalido(comboBoxCantidad);
-                primerInvalido ??= comboBoxCantidad;
+                MarcarComboInvalido(comboBoxCategoria);
+                primerInvalido ??= comboBoxCategoria;
             }
-            else
-            {
-                RestaurarBordeCombo(comboBoxCantidad);
-            }
-
-            if (!_idProveedorSeleccionado.HasValue || _idProveedorSeleccionado.Value <= 0 || string.IsNullOrWhiteSpace(textBoxProveedor.Text))
+            if (!_idProveedorSeleccionado.HasValue || string.IsNullOrWhiteSpace(textBoxProveedor.Text))
             {
                 MarcarCampoInvalido(textBoxProveedor);
                 primerInvalido ??= textBoxProveedor;
             }
-            else
-            {
-                RestaurarBorde(textBoxProveedor);
-            }
-
             if (primerInvalido != null)
             {
                 primerInvalido.Focus();
-                MessageBox.Show("Por favor, complete todos los campos obligatorios resaltados en rojo.",
-                                "Campos Incompletos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Completá los campos obligatorios resaltados.",
+                    "Campos incompletos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string[] permitidos = TallesPorCategoria(comboBoxCategoria.Text);
+            bool edicion = _idProductoOriginal.HasValue && !_modoAgregarTalle;
+            var talles = edicion
+                ? new List<string> { _talleOriginalEdicion ?? string.Empty }
+                : _tallesSeleccionados.OrderBy(t => Array.IndexOf(permitidos, t)).ToList();
+
+            if (talles.Count == 0 || talles.Any(string.IsNullOrWhiteSpace) ||
+                (!edicion && permitidos.Length == 0))
+            {
+                MessageBox.Show(permitidos.Length == 0
+                        ? "La categoría no tiene talles configurados."
+                        : "Seleccioná al menos un talle.",
+                    "Talle requerido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (!edicion && talles.Any(t => !permitidos.Contains(t, StringComparer.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show("El talle seleccionado no corresponde a la categoría.",
+                    "Talle inválido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            // Los talles históricos pueden conservarse en su categoría original,
+            // pero no trasladarse a una categoría que no los admite.
+            int categoriaElegida = Convert.ToInt32(comboBoxCategoria.SelectedValue);
+            if (edicion && categoriaElegida != _categoriaOriginalEdicion &&
+                !permitidos.Contains(_talleOriginalEdicion ?? "", StringComparer.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("El talle del producto no corresponde a la nueva categoría.",
+                    "Categoría incompatible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             var cul = CultureInfo.CurrentCulture;
-
-            // 1. Validación de parseo numérico y valor > 0 para Precio de Costo
             if (!decimal.TryParse(textBoxCosto.Text.Trim(), NumberStyles.Number, cul, out var pc) || pc <= 0)
             {
                 MarcarCampoInvalido(textBoxCosto);
                 textBoxCosto.Focus();
-                textBoxCosto.SelectAll();
-                MessageBox.Show("El precio de costo debe ser un valor numérico mayor a cero.",
-                                "Precio Inválido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("El costo debe ser un número mayor a cero.",
+                    "Precio inválido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
-            // 2. Validación de parseo numérico y valor > 0 para Precio de Venta
-            if (!decimal.TryParse(textBoxPrecioVenta.Text.Trim(), NumberStyles.Number, cul, out var pv) || pv <= 0)
+            if (!decimal.TryParse(textBoxPrecioVenta.Text.Trim(), NumberStyles.Number, cul, out var pv) || pv <= pc)
             {
                 MarcarCampoInvalido(textBoxPrecioVenta);
                 textBoxPrecioVenta.Focus();
-                textBoxPrecioVenta.SelectAll();
-                MessageBox.Show("El precio de venta debe ser un valor numérico mayor a cero.",
-                                "Precio Inválido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("El precio de venta debe ser mayor al costo.",
+                    "Precio inválido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // 3. Validación de negocio: Precio de Venta estrictamente mayor a Costo
-            if (pv <= pc)
+            int stock = edicion && int.TryParse(textBoxStock.Text, out int actual) ? actual : 0;
+            var productos = talles.Select(talle => new EProducto
             {
-                MarcarCampoInvalido(textBoxPrecioVenta);
-                textBoxPrecioVenta.Focus();
-                textBoxPrecioVenta.SelectAll();
-                MessageBox.Show("El precio de venta debe ser mayor al precio de costo.",
-                                "Regla de Negocio", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            int stockFinal = _idProductoOriginal.HasValue
-                ? (int.TryParse(textBoxStock.Text.Trim(), out int s) ? s : 0)
-                : 0;
-
-            var producto = new EProducto
-            {
-                IdProducto = _idProductoOriginal ?? 0,
-                IdCategoria = Convert.ToInt32(comboBoxCantidad.SelectedValue),
+                IdProducto = edicion ? _idProductoOriginal!.Value : 0,
+                IdCategoria = Convert.ToInt32(comboBoxCategoria.SelectedValue),
                 IdProveedor = _idProveedorSeleccionado!.Value,
                 Nombre = textBoxNombre.Text.Trim(),
-                Descripcion = textBoxDescripcion.Text.Trim(),
-                Talle = textBoxTalle.Text.Trim(),
-                Stock = stockFinal,
-                PrecioVenta = pv,
+                Descripcion = string.IsNullOrWhiteSpace(textBoxDescripcion.Text) ? null : textBoxDescripcion.Text.Trim(),
+                Talle = talle,
+                Stock = stock,
                 PrecioCosto = pc,
+                PrecioVenta = pv,
                 Activo = true
-            };
+            }).ToList();
 
-            bool resultado;
-            string mensajeError;
+            // Se confirma explícitamente si los cambios se propagan a talles existentes.
+            bool aplicarAOtrosTalles = false;
+            if (edicion)
+            {
+                List<string> otrosTalles;
+                try
+                {
+                    otrosTalles = _lProducto.ObtenerOtrosTalles(_idProductoOriginal!.Value);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("No se pudieron consultar las variantes: " + ex.Message,
+                        "Error de consulta", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
-            if (_idProductoOriginal.HasValue)
-            {
-                resultado = _lProducto.Modificar(producto, out mensajeError);
-            }
-            else
-            {
-                resultado = _lProducto.Registrar(producto, out mensajeError);
+                if (otrosTalles.Count > 0)
+                {
+                    var opcion = MessageBox.Show(
+                        $"Este producto también existe en los talles: {string.Join(", ", otrosTalles)}.\n\n" +
+                        $"¿Aplicar los cambios también a esos talles?\n\n" +
+                        $"Sí: todos los talles  |  No: solo talle {_talleOriginalEdicion}",
+                        "Aplicar cambios", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    if (opcion == DialogResult.Cancel) return;
+                    aplicarAOtrosTalles = opcion == DialogResult.Yes;
+
+                    if (aplicarAOtrosTalles && categoriaElegida != _categoriaOriginalEdicion &&
+                        otrosTalles.Any(t => !permitidos.Contains(t, StringComparer.OrdinalIgnoreCase)))
+                    {
+                        MessageBox.Show("Hay otros talles que no corresponden a la nueva categoría.",
+                            "Categoría incompatible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
             }
 
-            if (resultado)
+            buttonGuardar.Enabled = false;
+            try
             {
-                MessageBox.Show(_idProductoOriginal.HasValue ? "Producto actualizado correctamente." : "Producto registrado correctamente.",
-                                "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                this.DialogResult = DialogResult.OK;
-                this.Close();
+                bool guardado;
+                string error;
+                if (edicion)
+                    guardado = _lProducto.ModificarVariantes(productos[0], aplicarAOtrosTalles, out error);
+                else if (_modoAgregarTalle && _idProductoBaseAgregarTalle.HasValue)
+                    guardado = _lProducto.RegistrarTallesParaProducto(
+                        _idProductoBaseAgregarTalle.Value, talles, out error);
+                else
+                    guardado = _lProducto.RegistrarVariantes(productos, out error);
+
+                if (!guardado)
+                {
+                    MessageBox.Show(string.IsNullOrEmpty(error) ? "No se pudo guardar." : error,
+                        "No se guardó", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                MessageBox.Show(edicion ? "Producto actualizado correctamente." :
+                    productos.Count == 1 ? "Se registró 1 talle correctamente." :
+                    $"Se registraron {productos.Count} talles correctamente.",
+                    "Guardado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DialogResult = DialogResult.OK;
+                Close();
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show(mensajeError, "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("No se pudieron guardar los datos: " + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                if (!IsDisposed) buttonGuardar.Enabled = true;
             }
         }
 
         private void ButtonLimpiar_Click(object sender, EventArgs e)
         {
-            var campos = new[] { textBoxNombre, textBoxDescripcion, textBoxPrecioVenta, textBoxCosto, textBoxTalle, textBoxProveedor };
+            if (_idProductoOriginal.HasValue || _modoAgregarTalle) return;
+
+            var campos = new List<Guna2TextBox> { textBoxNombre, textBoxDescripcion, textBoxPrecioVenta, textBoxCosto };
+            if (!textBoxProveedor.ReadOnly) campos.Add(textBoxProveedor);
             foreach (var c in campos)
             {
                 c.Clear();
                 RestaurarBorde(c);
             }
-
-            RestaurarBordeCombo(comboBoxCantidad);
-            comboBoxCantidad.SelectedIndex = -1;
+            if (!textBoxProveedor.ReadOnly) _idProveedorSeleccionado = null;
+            _tallesSeleccionados.Clear();
+            RestaurarBordeCombo(comboBoxCategoria);
+            comboBoxCategoria.SelectedIndex = -1;
             textBoxStock.Text = "0";
-            _idProveedorSeleccionado = null;
+            ActualizarSelectorTalles();
         }
 
         private void SoloEnteros_KeyPress(object sender, KeyPressEventArgs e)
@@ -567,12 +840,5 @@ namespace PROYECTO1.CapaPresentacion
                 e.Handled = true;
         }
 
-        private void textBoxNombre_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (!char.IsControl(e.KeyChar) && !char.IsLetter(e.KeyChar) && e.KeyChar != ' ')
-            {
-                e.Handled = true;
-            }
-        }
     }
 }

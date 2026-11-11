@@ -21,6 +21,9 @@ namespace PROYECTO1.CapaEntidades
         public int IdProducto { get; set; }
         public int Cantidad { get; set; }
         public decimal PrecioCosto { get; set; }
+        // Precio de venta que se aplicará al registro de producto tras confirmar la compra.
+        // El historial del detalle_compra mantiene únicamente el costo pactado.
+        public decimal PrecioVenta { get; set; }
         public decimal Subtotal => Cantidad * PrecioCosto;
     }
 }
