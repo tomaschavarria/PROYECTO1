@@ -78,6 +78,7 @@ namespace PROYECTO1.CapaLogica
             return _dUsuario.CambiarEstado(idUsuario, nuevoEstado);
         }
 
+
         public UsuarioSesion? IniciarSesion(string usuario, string clave, out string mensajeError)
         {
             mensajeError = string.Empty;
